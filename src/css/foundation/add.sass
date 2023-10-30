@@ -1,0 +1,15 @@
+@use '../abstracts' as *
+
+a,
+label,
+select,
+button,
+input[type='radio'],
+input[type='checkbox']
+  cursor: pointer
+
+a, input, button
+  +outline
+
+::selection
+  background: $color-blue

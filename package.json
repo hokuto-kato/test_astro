@@ -1,0 +1,55 @@
+{
+  "name": "@example/basics",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "dev:cms": "NODE_CMS=true yarn dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "build:cms": "NODE_CMS=true yarn build",
+    "build:production": "yarn build:cms",
+    "preview": "astro preview",
+    "preview:build": "astro build && astro preview",
+    "astro": "astro",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.0.1",
+    "@dogstudio/highway": "^2.2.1",
+    "@studio-freight/lenis": "^1.0.27",
+    "@types/three": "^0.157.0",
+    "astro": "^3.3.4",
+    "dat.gui": "^0.7.9",
+    "date-fns": "^2.29.3",
+    "deepmerge": "^4.2.2",
+    "glsl-easings": "^1.0.0",
+    "glsl-noise": "^0.0.0",
+    "gsap": "file:vendors/gsap-bonus.tgz",
+    "image-size": "^1.0.2",
+    "locomotive-scroll": "^4.1.4",
+    "lottie-web": "^5.12.2",
+    "pace-js": "^1.2.4",
+    "petite-vue": "^0.4.1",
+    "sharp": "^0.32.6",
+    "simplebar": "^6.2.5",
+    "three": "0.157.0",
+    "tweakpane": "^4.0.1",
+    "vivus": "^0.4.6",
+    "what-input": "^5.2.12"
+  },
+  "devDependencies": {
+    "@tweakpane/core": "^2.0.1",
+    "astro-icon": "./vendors/astro-icon",
+    "hashids": "^2.3.0",
+    "prettier": "^2.8.1",
+    "prettier-plugin-astro": "^0.7.0",
+    "sass": "^1.69.3",
+    "vite-plugin-glsl": "^1.1.2"
+  },
+  "volta": {
+    "node": "18.18.2",
+    "yarn": "1.22.19"
+  }
+}

@@ -1,0 +1,36 @@
+@use "sass:math"
+
+/// ＋型アイコン (アコーディオン開閉ボタン)
+///
+/// @param {Number(px)} $size - ボックスサイズ
+/// @param {Number(px)} $line-width[1px] - 線の太さ
+/// @param {Color}  $color[currentColor] - 色
+/// @param {String} $position[relative] - position プロパティの値
+///
+/// @group icon
+=plus( $size, $line-width: 1px, $color: currentColor, $position: relative )
+  display: block
+  position: $position
+  height: $size
+  width: $size
+
+  &::before,
+  &::after
+    content: ''
+    display: block
+    position: absolute
+    background-color: $color
+
+  &::before
+    top: 0
+    bottom: 0
+    left: 50%
+    margin-left: math.div(-$line-width, 2)
+    width: $line-width
+
+  &::after
+    left: 0
+    right: 0
+    top: 50%
+    margin-top: math.div(-$line-width, 2)
+    height: $line-width

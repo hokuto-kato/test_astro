@@ -1,0 +1,21 @@
+---
+import Footer from '~/components/common/Footer.astro'
+import Header from '~/components/common/Header.astro'
+
+export type Props = {
+  pageId: string
+}
+
+const { pageId } = Astro.props
+---
+
+<div data-permanent>
+  <Header />
+  <main data-router-view={pageId}>
+    <div data-router-inner>
+      <slot />
+    </div>
+    <slot name="fixed" />
+  </main>
+  <Footer />
+</div>

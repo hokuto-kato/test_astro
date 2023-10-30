@@ -1,0 +1,25 @@
+---
+import { getDataset } from '~/astro/utils'
+import Svg from '../core/Svg.astro'
+import Img from '../core/Img.astro'
+
+export type Props = {
+  class?: string
+}
+
+const { class: className } = Astro.props
+
+const dataset = getDataset(Astro.props)
+---
+
+<header class:list={['Header', className]} data-fixed {...dataset}>
+  <h2>Header</h2>
+</header>
+
+<script>
+  // NOTE: このファイルでJSが不要な場合でも、以下の記述は必ず残すこと
+  import Component from '~js/parentClass/Component'
+  ;(class extends Component {
+    static componentName = 'Header'
+  }).register()
+</script>

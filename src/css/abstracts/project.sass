@@ -1,0 +1,13 @@
+$gradient-to-right: linear-gradient(to right, #30ae52 12%, #3588c9 88%)
+$gradient-to-bottom: linear-gradient(to bottom, #30ae52 12%, #3588c9 88%)
+
+=content-inner($padding:false)
+  $propName: 'margin'
+  @if $padding == true
+    $propName: 'padding'
+
+  +media-pc
+    #{$propName}-inline: size-variable-pc(152)
+  +media-sp
+    // width: size-variable-sp(668);
+    #{$propName}-inline: size-variable-sp(60)

@@ -1,0 +1,83 @@
+<script>
+  import Component from '~js/parentClass/Component'
+  import store from '~js/managers/store'
+  import eventBus from '~js/events/eventBus'
+  import { Swipe } from '~js/utils/gesture'
+  ;(class extends Component {
+    static selectorRoot = 'a[href*="#"]:not([href="#"])'
+
+    onInit() {
+      this.isDisableHash = 'disableHash' in this.el.dataset
+      this.to = this.el.getAttribute('href')
+      this.onTouchStartHandler = this.onTouchStart.bind(this)
+      this.swipe = new Swipe(
+        this.el,
+        () => {
+          return null
+        },
+        { onStart: this.onTouchStartHandler }
+      )
+    }
+
+    onMouseenter() {
+      this.path = window.location.pathname
+    }
+
+    onTouchStart() {
+      this.path = window.location.pathname
+    }
+
+    onClick(event) {
+      const { cScroll } = store
+
+      if (cScroll.isDisable) return
+
+      if (this.to === '#top') {
+        event.preventDefault()
+        if (!this.isDisableHash && location.hash) {
+          window.history.pushState(null, '', window.location.pathname)
+        }
+        store.isAnchor = true
+        this.detectOpenModal()
+        return
+      }
+
+      if (!this.to.startsWith('#') && !this.to.includes(this.path)) return
+
+      const elTarget = document.querySelector(
+        this.el.hash.replace(/#(.+)/, (_, p1) => `#${decodeURIComponent(p1)}`)
+      )
+      if (elTarget) {
+        event.preventDefault()
+        if (!this.isDisableHash) {
+          window.history.pushState(null, '', this.to)
+        }
+        store.isAnchor = true
+        this.detectOpenModal(elTarget)
+      }
+    }
+
+    detectOpenModal(target) {
+      if (store.isOpenModal) {
+        eventBus.emit('closeModal')
+        requestAnimationFrame(() => {
+          this.scrollTo(target)
+        })
+      } else {
+        this.scrollTo(target)
+      }
+    }
+
+    scrollTo(target = 0) {
+      store.cScroll.scrollTo(target, {
+        onComplete: () => {
+          store.isAnchor = false
+        },
+      })
+    }
+
+    onDestroy() {
+      this.swipe.destroy()
+    }
+  }).register()
+</script>

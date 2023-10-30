@@ -1,0 +1,36 @@
+---
+---
+
+<script>
+  import Component from '~js/parentClass/Component'
+  ;(class extends Component {
+    static selectorRoot =
+      '[data-modal-trigger]:not([data-modal-trigger-manual])'
+    isOpen = false
+
+    onInit() {
+      this.id = this.el.dataset.modalTrigger
+    }
+
+    onClick(e) {
+      e.preventDefault()
+      if (!this.isOpen) {
+        this.emit('openModal', this.id)
+        this.isOpen = true
+      } else {
+        this.emit('closeModal', this.id)
+        this.isOpen = false
+      }
+    }
+
+    onCloseModal(id) {
+      if (id !== this.id) return
+      this.isOpen = false
+    }
+
+    onLeave(id) {
+      if (id !== this.id) return
+      this.isOpen = false
+    }
+  }).register()
+</script>

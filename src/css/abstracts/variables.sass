@@ -1,0 +1,44 @@
+@use "sass:math"
+
+//
+// base （デザインデータのサイズ）
+//
+
+/// @group size
+$base-width-tb: 768px
+/// @group size
+$base-width-pc: 1600px
+/// @group size
+$base-height: 900px
+/// @group size
+$base-width-min: $base-width-tb
+/// @group size
+$base-width-max: 1920px
+/// @group size
+$base-height-min: 600px
+/// @group size
+$base-width-sp: 414px
+// $base-width-sp: 750px;
+/// @group size
+$base-height-sp: 1430px
+/// @group size
+$base-width-min-sp: 640px
+/// @group size
+$base-height-modal-sp: 1208px
+/// @group size
+$base-width-sp-land: 1334px
+/// @group size
+$base-height-sp-land: 828px
+// $base-height-sp-land: 750px;
+/// @group size
+$width-content-pc: 1200px
+/// @group size
+$width-content-single-pc: 1000px
+/// @group size
+$margin-content-small: 80px
+/// @group size
+$margin-single-wide-pc: math.div(($width-content-pc - $width-content-single-pc), 2)
+/// @group size
+$margin-negative-single-wide-pc: -$margin-single-wide-pc
+/// @group size
+$base-width-small: $width-content-pc + $margin-content-small * 2

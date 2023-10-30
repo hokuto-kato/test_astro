@@ -1,0 +1,8 @@
+---
+import SpritesheetAll from './SpritesheetAll.astro'
+
+const content = await Astro.slots.render('default');
+---
+
+<Fragment set:html={content} />
+<SpritesheetAll />

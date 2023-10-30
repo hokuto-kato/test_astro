@@ -1,0 +1,27 @@
+=root-selector-astro-global($selector)
+  :global(#{$selector}) &
+    @content
+
+=browser-tablet
+  .bTablet &
+    @content
+
+=browser-mobile
+  +root-selector-astro-global('.bMobile')
+    @content
+
+=browser-android
+  +root-selector-astro-global('.bAndroid')
+    @content
+
+=browser-ios
+  .bIos &
+    @content
+
+=browser-safari
+  .bSafari &
+    @content
+
+=browser-windows
+  .bWindows &
+    @content

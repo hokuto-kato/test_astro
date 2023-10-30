@@ -1,0 +1,23 @@
+---
+import { getDataset } from '~/astro/utils'
+
+export type Props = {
+  class?: string
+}
+
+const { class: className } = Astro.props
+
+const dataset = getDataset(Astro.props)
+---
+
+<footer class:list={['Footer', className]} {...dataset} data-footer>
+  <h2>Footer</h2>
+</footer>
+
+<script>
+  import Component from '~js/parentClass/Component'
+  ;(class extends Component {
+    static componentName = 'Footer'
+    // NOTE: ここにJSを記述
+  }).register()
+</script>

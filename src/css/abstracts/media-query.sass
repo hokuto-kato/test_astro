@@ -1,0 +1,110 @@
+@use 'variables' as *
+
+//
+// media query
+//
+
+$diff: 0.02px
+
+/// SP | TB
+/// @group media query
+$breakpoint: $base-width-tb
+/// TB | PC
+/// @group media query
+$breakpoint-tb-pc: $base-width-min
+/// @group media query
+$breakpoint-pc-single-small: $width-content-single-pc + $margin-content-small * 2
+
+/// SP
+/// @group media query
+$media-sp: 'screen and (max-width:#{$breakpoint - $diff})'
+/// TB
+/// @group media query
+$media-tb: 'screen and (min-width: #{$breakpoint}) and (max-width: #{$breakpoint-tb-pc - $diff})'
+/// TB Vertical (タブレットかつ縦向きの場合)
+/// @group media query
+$media-tb-portrait: 'screen and (min-width: #{$breakpoint}) and (orientation: portrait)'
+/// PC
+/// @group media query
+$media-pc: 'screen and (min-width: #{$breakpoint})'
+/// @group media query
+$media-pc-large: 'screen and (min-width: #{$base-width-pc})'
+/// @group media query
+$media-pc-max: 'screen and (min-width: #{$base-width-max})'
+/// @group media query
+$media-pc-small: 'screen and (min-width: #{$breakpoint}) and (max-width: #{$base-width-small - $diff})'
+/// @group media query
+$media-pc-single-small: 'screen and (min-width: #{$breakpoint}) and (max-width: #{$breakpoint-pc-single-small - $diff})'
+/// @group media query
+$media-pc-single-1440: 'screen and (min-width: #{$breakpoint}) and (max-width: #{1440px - $diff})'
+
+/// @group media query
+=media($media)
+  @media screen and #{$media}
+    @content
+
+/// SP
+///
+/// @example
+/// .sp {
+///   display: none;
+///
+///   +media-sp {
+///     display: block;
+///   }
+/// }
+///
+/// @group media query
+=media-sp
+  @media #{$media-sp}
+    @content
+
+=media-sp-small
+  @media screen and (max-width: 380px)
+    @content
+
+/// TB
+/// @group media query
+=media-tb
+  @media #{$media-tb}
+    @content
+
+/// TB Vertical (タブレットかつ縦向きの場合)
+/// @group media query
+=media-tb-portrait
+  @media #{$media-tb-portrait}
+    @content
+
+/// PC
+/// @group media query
+=media-pc
+  @media #{$media-pc}
+    @content
+
+/// PC Large
+/// @group media query
+=media-pc-large
+  @media #{$media-pc-large}
+    @content
+
+/// PC Large
+/// @group media query
+=media-pc-max
+  @media #{$media-pc-max}
+    @content
+
+/// PC Small
+/// @group media query
+=media-pc-small
+  @media #{$media-pc-small}
+    @content
+
+/// @group media query
+=media-pc-single-1440
+  @media #{$media-pc-single-1440}
+    @content
+
+/// @group media query
+=media-pc-single-small
+  @media #{$media-pc-single-small}
+    @content

@@ -1,0 +1,28 @@
+/// ハンバーガーメニューアイコン
+///
+/// @param {Number(px)} $line-width - 線の太さ
+/// @param {Number(px)} $gap-size - 罫線の間隔
+/// @param {Color} $color - 色
+///
+/// @group icon
+@mixin hamburger($line-width, $gap-size, $color)
+  display: block
+  position: relative
+  height: $line-width
+  width: 100%
+  background-color: $color
+
+  &::before,
+  &::after
+    content: ''
+    position: absolute
+    height: $line-width
+    left: 0
+    right: 0
+    background-color: $color
+
+  &::before
+    top: -$gap-size - $line-width
+
+  &::after
+    bottom: -$gap-size - $line-width

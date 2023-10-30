@@ -1,0 +1,36 @@
+---
+import { getDataset } from '~/astro/utils'
+import Img from './Img.astro'
+
+export type Props = {
+  src?: string
+  width?: number | string
+  height?: number | string
+  isSetSize?: boolean
+  isExternal?: boolean
+  class?: string
+}
+
+const {
+  src,
+  width,
+  height,
+  isSetSize = true,
+  isExternal = !src || src.startsWith('http'),
+  class: className,
+} = Astro.props
+
+const dataset = getDataset(Astro.props)
+---
+
+<Img
+  src={src}
+  width={width}
+  height={height}
+  class={className}
+  options={{
+    isDisableVariableSize: true,
+    isDisableSize: !isSetSize || isExternal,
+  }}
+  {...dataset}
+/>

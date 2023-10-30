@@ -1,0 +1,30 @@
+---
+import { SPRITESHEET_NAMESPACE } from './constants';
+import load, { fallback } from './utils.ts';
+import { Optimize } from './Props.ts';
+
+export interface Props {
+    optimize?: Optimize;
+}
+
+const { optimize = true, style, ...props } = Astro.props;
+const names: string[] = Object.keys(
+    import.meta.glob("/src/icons/**/*.svg", { as: "raw", eager: true })
+);
+const icons = await Promise.all(names.map(name => {
+    name = name.replace(/\/src\/icons\/(.+?)\.svg/, '$1');
+    return load(name, {}, optimize)
+        .then(res => ({ ...res, name }))
+        .catch((e) => {
+                if (import.meta.env.MODE === 'production') {
+        throw new Error(`[astro-icon] Unable to load icon "${name}"!
+${e}`);
+                }
+                return { ...fallback, name }
+        });
+}));
+---
+
+<svg style={`position: absolute; width: 0; height: 0; overflow: hidden; ${style ?? ''}`.trim()} {...{ 'aria-hidden': true, ...props }} astro-icon-spritesheet>
+    {icons.map(icon => (<symbol id={`${SPRITESHEET_NAMESPACE}:${icon.name}`} {...icon.props} set:html={icon.innerHTML} />))}
+</svg>

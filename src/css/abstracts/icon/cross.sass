@@ -1,0 +1,32 @@
+@use "sass:math"
+
+/// ×型アイコン (閉じるボタン)
+///
+/// @param {Number(px)} $size - ボックスサイズ
+/// @param {Number(px)} $line-width[1px] - 線の太さ
+/// @param {Color} $color[currentColor] - 色
+///
+/// @group icon
+=cross($size, $line-width: 1px, $color: currentColor)
+  $size: $size * 1.414
+
+  height: $size
+  width: $size
+
+  &::before,
+  &::after
+    content: ''
+    display: block
+    position: absolute
+    left: 0
+    top: 50%
+    margin-top: math.div(-$line-width, 2)
+    height: $line-width
+    width: $size
+    background-color: $color
+
+  &::before
+    transform: rotateZ(45deg)
+
+  &::after
+    transform: rotateZ(135deg)

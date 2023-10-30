@@ -1,0 +1,192 @@
+---
+
+---
+
+<script>
+  import Component from '~js/parentClass/Component'
+  import passive from '~js/utils/passive'
+  import gsapK from '~js/utils/gsapK'
+  import eventBus from '~js/events/eventBus'
+  import store from '~js/managers/store'
+
+  const BACKDROP_MIN_SCALE_PC = 0.9
+  const BACKDROP_MIN_SCALE_SP = 0.8
+  const BACKDROP_OPEN_DURATION = 0.8
+
+  ;(class extends Component {
+    static selectorRoot = '[data-modal]:not([data-modal-manual])'
+    isOpen = false
+
+    onInit() {
+      const { el } = this
+
+      const { id = el.id || el.dataset.modal, isDisableAnimation = false } = el
+        .dataset.modal
+        ? JSON.parse(el.dataset.modal)
+        : {}
+
+      this.id = id
+      this.isDisableAnimation = isDisableAnimation
+
+      this.elBody = document.body
+      this.elContent = this.el.querySelector('[data-modal-content]')
+      this.elBackdrop = this.el.querySelector('[data-modal-backdrop]')
+      this.elsClose = this.el.querySelectorAll('[data-modal-close]')
+
+      if (!this.isDisableAnimation) {
+        // this.elContent.style.willChange = 'transform'
+        gsapK.set(this.elContent, {
+          visibility: 'hidden',
+        })
+        if (this.elBackdrop) {
+          // this.elBackdrop.style.willChange = 'opacity'
+          gsapK.set(this.elBackdrop, {
+            opacity: 0,
+          })
+        }
+      }
+
+      this.elContent?.addEventListener(
+        'click',
+        (e) => {
+          e.stopPropagation()
+        },
+        passive,
+      )
+
+      const onClick = (el) => {
+        if (!this.isDisableAnimation) {
+          // el.style.willChange = 'opacity'
+          gsapK.set(el, {
+            opacity: 0,
+          })
+        }
+
+        el.addEventListener(
+          'click',
+          (e) => {
+            e.stopPropagation()
+            eventBus.emit('closeModal', this.id)
+          },
+          passive,
+        )
+      }
+      if (this.elsClose.length > 0) {
+        this.elsClose.forEach((el) => {
+          onClick(el)
+        })
+      } else if (this.elsClose.length !== 0) {
+        onClick(this.elsClose)
+      }
+
+      store.modals[this.id] = this
+    }
+
+    onClick(e) {
+      e.stopPropagation()
+      eventBus.emit('closeModal', this.id)
+    }
+
+    open(onComplete) {
+      if (this.isDisableAnimation) return
+      if (this.isOpen) return
+      this.isOpen = true
+
+      this.el.classList.add('-open')
+      this.elBody.classList.add('-open')
+
+      gsap.set(this.elContent, {
+        visibility: 'visible',
+      })
+
+      gsapK.to(this.elContent, {
+        duration: 0.6,
+        ease: 'expo.out',
+        onComplete: this.elBackdrop ? null : onComplete,
+      })
+      gsapK.to(this.elContent, {
+        duration: 0.6,
+        scrollTop: 0,
+        ease: 'power2.out',
+      })
+      gsapK.to(this.elsClose, {
+        opacity: 1,
+        duration: 0.6,
+        ease: 'power2.out',
+        delay: 0.2,
+      })
+      if (this.elBackdrop) {
+        gsapK.fromTo(
+          this.elBackdrop,
+          {
+            opacity: 0,
+            scale: this.isSp ? BACKDROP_MIN_SCALE_SP : BACKDROP_MIN_SCALE_PC,
+          },
+          {
+            opacity: 1,
+            scale: 1,
+            duration: BACKDROP_OPEN_DURATION,
+            ease: 'expo.out',
+          },
+        )
+      }
+    }
+
+    close(onComplete, isNoAnimation = false) {
+      if (this.isDisableAnimation) return
+      if (!this.isOpen) return
+      this.isOpen = false
+
+      gsapK.to(this.elContent, {
+        duration: isNoAnimation ? 0.01 : this.isSp ? 0.8 : 0.5,
+        ease: 'power4.out',
+        onComplete: this.elBackdrop
+          ? null
+          : () => {
+              this.el.classList.remove('-open')
+              this.elBody.classList.remove('-open')
+              if (onComplete) onComplete()
+            },
+      })
+      gsapK.to(this.elContent, {
+        duration: isNoAnimation ? 0.01 : this.isSp ? 0.6 : 0.35,
+        ease: 'power2.out',
+      })
+      gsapK.to(this.elsClose, {
+        opacity: 0,
+        duration: isNoAnimation ? 0.01 : this.isSp ? 0.6 : 0.35,
+        ease: 'power2.out',
+      })
+      if (this.elBackdrop) {
+        gsapK.to(this.elBackdrop, [
+          {
+            scale: this.isSp ? BACKDROP_MIN_SCALE_SP : BACKDROP_MIN_SCALE_PC,
+            duration: isNoAnimation ? 0.01 : this.isSp ? 0.3 : 0.5,
+            ease: 'power4.out',
+          },
+          {
+            opacity: 0,
+            duration: isNoAnimation ? 0.01 : this.isSp ? 0.3 : 0.5,
+            ease: 'power2.out',
+            onComplete: () => {
+              this.el.classList.remove('-open')
+              this.elBody.classList.remove('-open')
+              gsapK.set(this.elContent, {
+                visibility: 'hidden',
+              })
+              if (onComplete) onComplete()
+            },
+          },
+        ])
+      }
+    }
+
+    onLeave() {
+      if (this.isDisableAnimation) return
+
+      if (this.isOpen) {
+        this.close()
+      }
+    }
+  }).register()
+</script>

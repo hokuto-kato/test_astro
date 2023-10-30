@@ -1,0 +1,112 @@
+<script>
+  import merge from 'deepmerge'
+  import Component from '~js/parentClass/Component'
+  import passive from '~js/utils/passive'
+  import gsapK from '~js/utils/gsapK'
+  import { emitResize } from '~js/events/window'
+  ;(class extends Component {
+    static selectorRoot = '[data-accordion]'
+    isOpen = false
+    isAnimating = false
+
+    onInit() {
+      if (this.isDestroyed) return
+
+      const { isDisablePc = false, isDisableSp = false } = merge(
+        this.option,
+        JSON.parse(this.el.dataset.accordion || '{}')
+      )
+
+      if ((!this.isSp && isDisablePc) || (this.isSp && isDisableSp)) {
+        this.el.classList.add('-disable')
+        this.isDisable = true
+        return
+      }
+
+      this.elsTrigger = this.el.querySelectorAll('[data-accordion-trigger]')
+      this.elContent = this.el.querySelector('[data-accordion-content]')
+      this.elIcon = this.el.querySelector('[data-accordion-icon]')
+      if (this.elsTrigger.length === 0 || !this.elContent) return
+
+      gsapK.set(this.elContent, {
+        overflow: 'hidden',
+        height: 0,
+      })
+
+      this._onClickTrigger = this.clickTrigger.bind(this)
+      this.elsTrigger.forEach((el) => {
+        el.addEventListener('click', this._onClickTrigger, passive)
+      })
+    }
+
+    clickTrigger() {
+      if (!this.isOpen) {
+        this.open()
+      } else {
+        this.close()
+      }
+    }
+
+    open() {
+      if (this.isAnimating || this.isOpen) return
+      this.isOpen = true
+      this.isAnimating = true
+
+      this.elsTrigger.forEach((el) => {
+        el.classList.add('-open')
+      })
+      if (this.elIcon) this.elIcon.classList.add('-open')
+      this.elContent.style.willChange = 'height'
+
+      gsapK.to(this.elContent, {
+        height: 'auto',
+        duration: 0.7,
+        ease: 'power4.out',
+        onComplete: () => {
+          emitResize(true)
+          if (this.elContent) {
+            this.elContent.style.willChange = 'auto'
+          }
+          this.isAnimating = false
+        },
+      })
+    }
+
+    close() {
+      if (this.isAnimating || !this.isOpen) return
+      this.isOpen = false
+      this.isAnimating = true
+
+      this.elsTrigger.forEach((el) => {
+        el.classList.remove('-open')
+      })
+      if (this.elIcon) this.elIcon.classList.remove('-open')
+      this.elContent.style.willChange = 'height'
+
+      gsapK.to(this.elContent, {
+        height: 0,
+        duration: 0.65,
+        ease: 'power4.out',
+        onComplete: () => {
+          emitResize(true)
+          if (this.elContent) {
+            this.elContent.style.willChange = 'auto'
+          }
+          this.isAnimating = false
+        },
+      })
+    }
+
+    onDestroy() {
+      if (this.isDisable) return
+
+      this.elsTrigger?.forEach((el) => {
+        el.removeEventListener('click', this._onClickTrigger, passive)
+      })
+      this._onClickTrigger = null
+
+      this.elsTrigger = null
+      this.elContent = null
+    }
+  }).register()
+</script>

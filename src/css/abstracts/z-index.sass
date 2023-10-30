@@ -1,0 +1,28 @@
+//
+// z-index
+//
+
+/// @group z-index
+$z-index: "pace"
+
+/// $z-index で定義した名前の順番に基づく z-index 値を設定
+///
+/// `@require` $z-index
+///
+/// @param {String} $name - $z-index で定義した名前の1つ
+/// @param {Number} $offset[0] - 結果の z-index 値に足す値
+///
+/// @example
+/// $z-index: header, modal;
+///
+/// .header {
+///   +z-index(header); // z-index: 100
+/// }
+/// .modal {
+///   +z-index(modal); // z-index: 200
+///   +z-index(modal, 1); // z-index: 201
+/// }
+///
+/// @group z-index
+=z-index($name, $offset: 0)
+  z-index: index($z-index, $name) * 100 + $offset

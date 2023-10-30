@@ -1,0 +1,22 @@
+---
+import Layout from '~/astro/common'
+---
+
+<Layout
+  id="pageTop"
+  meta={{
+    title: 'title',
+    description: 'description',
+  }}
+>
+  <section>
+    <h2>Top Page</h2>
+  </section>
+</Layout>
+
+<script>
+  console.log('Top Page')
+  // NOTE: このファイルでJSが不要な場合でも、以下の記述は必ず残すこと
+  import Page from '~js/page'
+  ;(class extends Page {}).register()
+</script>

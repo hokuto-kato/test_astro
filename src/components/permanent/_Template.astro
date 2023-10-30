@@ -1,0 +1,27 @@
+---
+import { getDataset } from '~/astro/utils'
+
+export type Props = {
+  class?: string
+}
+
+const { class: className } = Astro.props
+
+const dataset = getDataset(Astro.props)
+---
+
+{
+  /* NOTE: このコンポーネントは"[data-permanent]"属性の付いた要素の中に配置しないとJSが動かないので注意 */
+}
+{/* NOTE: ここにHTMLを記述 */}
+<div class:list={['Template', className]} {...dataset}>
+  <slot />
+</div>
+
+<script>
+  // import Permanent from '~js/parentClass/Permanent'
+  // ;(class extends Permanent {
+  //   static componentName = 'Template'
+  //   // NOTE: ここにJSを記述
+  // }).register()
+</script>

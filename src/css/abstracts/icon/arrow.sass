@@ -1,0 +1,125 @@
+@use "sass:math"
+
+/// 矢印 (ベタ塗り三角形)
+///
+/// @param {String} $direction - 向き (right|left|bottom|top)
+/// @param {Number(px)} $width - 幅
+/// @param {Number(px)} $height[$width] - 高さ
+/// @param {Bool} $is-center[true] - 上下左右中央揃えにするかどうか
+/// @param {Color} $color[currentColor] - 色
+///
+/// @group icon
+=arrow($direction, $width, $height: $width, $is-center: true, $color: currentColor)
+  border: solid transparent
+  @if $is-center
+    position: absolute
+    top: 50%
+    left: 50%
+
+  @if $direction == 'right'
+    margin-top: math.div(-$height, 2)
+    margin-left: math.div(-$width, 2) + math.div($width, 8)
+    border-left-color: $color
+    border-top-width: math.div($height, 2)
+    border-bottom-width: math.div($height, 2)
+    border-right-width: 0
+    border-left-width: $width
+  @else if $direction == 'left'
+    margin-top: math.div(-$height, 2)
+    margin-left: math.div(-$width, 2) - math.div($width, 8)
+    border-right-color: $color
+    border-top-width: math.div($height, 2)
+    border-bottom-width: math.div($height, 2)
+    border-right-width: $width
+    border-left-width: 0
+  @else if $direction == 'bottom'
+    margin-top: math.div(-$height, 2) + math.div($height, 8)
+    margin-left: math.div(-$width, 2)
+    border-top-color: $color
+    border-top-width: $height
+    border-bottom-width: 0
+    border-right-width: math.div($width, 2)
+    border-left-width: math.div($width, 2)
+  @else if $direction == 'top'
+    margin-top: math.div(-$height, 2) - math.div($height, 8)
+    margin-left: math.div(-$width, 2)
+    border-bottom-color: $color
+    border-top-width: 0
+    border-bottom-width: $height
+    border-right-width: math.div($width, 2)
+    border-left-width: math.div($width, 2)
+
+/// 矢印 (ベタ塗り三角形) のサイズのみ上書きする
+///
+/// @param {String} $direction - 向き (right|left|bottom|top)
+/// @param {Number(px)} $width - 幅
+/// @param {Number(px)} $height[$width] - 高さ
+///
+/// @require {mixin} arrow
+///
+/// @group icon
+=arrow-size($direction, $width, $height: $width)
+  @if $direction == 'right'
+    margin-top: math.div(-$height, 2)
+    margin-left: math.div(-$width, 2)
+    border-top-width: math.div($height, 2)
+    border-bottom-width: math.div($height, 2)
+    border-right-width: 0
+    border-left-width: $width
+  @else if $direction == 'left'
+    margin-top: math.div(-$height, 2)
+    margin-left: math.div(-$width, 2)
+    border-top-width: math.div($height, 2)
+    border-bottom-width: math.div($height, 2)
+    border-right-width: $width
+    border-left-width: 0
+  @else if $direction == 'bottom'
+    margin-top: math.div(-$height, 2)
+    margin-left: math.div(-$width, 2)
+    border-top-width: $height
+    border-bottom-width: 0
+    border-right-width: math.div($width, 2)
+    border-left-width: math.div($width, 2)
+  @else if $direction == 'top'
+    margin-top: math.div(-$height, 2)
+    margin-left: -$width
+    border-top-width: 0
+    border-bottom-width: $height
+    border-right-width: math.div($width, 2)
+    border-left-width: math.div($width, 2)
+
+/// 矢印 (>)
+///
+/// @param {String} $direction - 向き (right|left|bottom|top)
+/// @param {Number(px)} $size - サイズ
+/// @param {Number(px)} $line-width - 線の太さ
+/// @param {Color} $color[currentColor] - 色
+///
+/// @group icon
+=line-arrow($direction, $size, $line-width, $color: currentColor)
+  content: ''
+  display: block
+  position: absolute
+  top: 50%
+  width: $size
+  height: $size
+  border-color: $color
+  border-style: solid
+  border-width: 0
+  transform: rotate(45deg)
+
+  @if $direction == 'right'
+    border-top-width: $line-width
+    border-right-width: $line-width
+    margin-top: -(floor(math.div($size, 1.7)))
+  @else if $direction == 'left'
+    border-left-width: $line-width
+    border-bottom-width: $line-width
+    margin-top: -(floor(math.div($size, 1.7)))
+  @else if $direction == 'bottom'
+    border-right-width: $line-width
+    border-bottom-width: $line-width
+    margin-top: math.div(-$size, 2)
+  @else if $direction == 'top'
+    border-top-width: $line-width
+    border-left-width: $line-width

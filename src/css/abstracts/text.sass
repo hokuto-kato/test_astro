@@ -1,0 +1,83 @@
+@use "sass:math"
+
+/// トラッキング
+///
+/// @param {Number} $value - PSDのトラッキングの数値
+///
+/// @group text
+=tracking($value)
+  letter-spacing: math.div($value, 1000) + em
+
+/// line-height によって発生するテキストブロックの上下余白を計算
+///
+/// `@require` $font-size-browser, $font-size-base, $line-height-body-text
+///
+/// @param {Number(px)} $font-size[$font-size-browser * remove-unit($font-size-base)] - テキストのフォントサイズ (デフォルトは body のフォントサイズ)
+/// @param {Number} $line-height[$line-height-body-text] - テキストの行間サイズ
+///
+/// @return {Number(px)} 空白の数値
+///
+/// @require {function} remove-unit
+///
+/// @example
+/// margin-top: 20px - text-line-margin();
+///
+/// @group text
+@function text-line-margin( $font-size: $font-size-browser * remove-unit($font-size-base), $line-height: $line-height-body-text )
+  @return $font-size * ($line-height - 1)
+
+/// line-height によって発生するテキストブロックの上下片側の余白を計算
+///
+/// `@require` $font-size-browser, $font-size-base, $line-height-body-text
+///
+/// @param {Number(px)} $font-size[$font-size-browser * remove-unit($font-size-base)] - テキストのフォントサイズ (デフォルトは body のフォントサイズ)
+/// @param {Number} $line-height[$line-height-body-text] - テキストの行間サイズ
+///
+/// @return {Number(px)} 空白の数値
+///
+/// @require {function} remove-unit
+///
+/// @example
+/// margin-top: 20px - text-line-margin();
+///
+/// @group text
+@function text-line-margin-half( $font-size: $font-size-browser * remove-unit($font-size-base), $line-height: $line-height-body-text )
+  @return $font-size * math.div(($line-height - 1), 2)
+
+=text-link
+  color: $color-blue
+  text-decoration: underline
+
+=text-link-blank
+  +text-link
+  &[target='_blank']
+    display: inline-flex
+    align-items: center
+    text-decoration: none
+    &::after
+      display: block
+      content: ''
+      color: $color-blue
+      background-size: cover
+      background-image: url('/assets/img/common/b-icon_blank.svg')
+      +media-pc
+        width: 9px
+        height: 8px
+        margin-left: 9px
+        margin-right: 4px
+      +media-sp
+        width: size-variable-sp(16)
+        height: size-variable-sp(14)
+        margin-left: size-variable-sp(10)
+        margin-right: size-variable-sp(6)
+
+/// 複数行で省略
+///
+/// @param {Number} $line - 行数
+///
+/// @group text
+=line-clamp($line)
+  display: -webkit-box
+  -webkit-box-orient: vertical
+  -webkit-line-clamp: $line
+  overflow: hidden

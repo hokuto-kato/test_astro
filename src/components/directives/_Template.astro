@@ -1,0 +1,16 @@
+---
+---
+
+{/* NOTE: ここに全ページ共通のHTMLを記述 */}
+
+<style lang="sass" is:global>
+  // NOTE: ここにSASSを記述
+</style>
+
+<script>
+  import Component from '~js/parentClass/Component'
+  ;(class extends Component {
+    static selectorRoot = '[data-template]:not([data-template-manual])'
+    // NOTE: ここにJSを記述
+  }).register()
+</script>

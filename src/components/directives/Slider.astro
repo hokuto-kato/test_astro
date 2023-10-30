@@ -1,0 +1,1323 @@
+---
+---
+
+<script>
+  import Component from '~js/parentClass/Component'
+  import { gsap } from 'gsap'
+  import gsapK from '~js/utils/gsapK'
+  import passive from '~js/utils/passive'
+  import { getClientPos } from '~js/utils/event'
+  import {
+    addMouseenterListener,
+    addMouseleaveListener,
+    removeMouseenterListener,
+    removeMouseleaveListener,
+  } from '~js/utils/mouse'
+  import { getLoopedNumber } from '~js/utils/math'
+
+  const param = {
+    ease: 0.5,
+  }
+  const THRESHOLD_SWIPE = 60
+  const K_SWIPE = 10
+  const THRESHOLD_DIRECTION = 1.5 /* スワイプの上下左右判定のしきい値（高いほど上下向きに近い） */
+  const CLASS_NAME_DISABLE_SLIDE = '-disable'
+  const CLASS_NAME_DISABLE_BUTTON = '-disable'
+
+  class SliderItem {
+    constructor(el) {
+      this.el = el
+
+      this._eClickHandler = undefined
+
+      this.onClick = undefined
+    }
+
+    /**
+     *
+     */
+    init() {
+      this._mouseTarget = this.el
+
+      this._eClickHandler = this._eClick.bind(this)
+      this.el.addEventListener('click', this._eClickHandler)
+    }
+
+    /**
+     *
+     */
+    _eClick(e) {
+      if (this.onClick) {
+        this.onClick(e)
+      }
+    }
+
+    /**
+     *
+     */
+    getPos() {
+      const computedStyle = document.defaultView.getComputedStyle(this.el, null)
+      const width = Number(computedStyle.width.replace('px', ''))
+
+      const rect = this.el.getBoundingClientRect()
+      const scrollLeft =
+        window.pageXOffset || document.documentElement.scrollLeft
+      const left = rect.left + scrollLeft
+
+      return {
+        width,
+        x: left,
+        right: left + width,
+      }
+    }
+
+    onResize() {
+      this.width = this.el.clientWidth
+    }
+
+    /**
+     *
+     */
+    dispose() {
+      if (this.el) {
+        this._mouseTarget.removeEventListener('click', this._eClickHandler)
+        this.el = null
+        this._eClickHandler = null
+      }
+
+      this.onClick = null
+    }
+  }
+
+  ;(class extends Component {
+    static selectorRoot = '[data-slider]:not([data-slider-manual])'
+    _isInit = false
+    _isDisable = false
+    item = null
+    _isMouseDown = false
+    _isMouseMove = false
+    _isMouseMoveVertical = false
+    _isProgressDrag = false
+    _pos = null
+    _posOffset = null
+    _startPos = null
+    _listSize = null
+    _totalSize = 0
+    _listOffsetLeft = 0 // ウィンドウ左端からのスライド left 位置
+    _follow = 0
+    _isMoving = false
+    _isMoveUseBtn = false
+    _isMovingLoop = false
+    _isLastPositionRight = false
+    isIntersecting = false
+    _moveTotal = 0
+    nowKey = 0
+    _nowKeyCurrent = -1
+    _nowKeyNext = -1
+    _nowKeyPrev = -1
+    _nowKeyCurrent2 = -1
+    _nowKeyNext2 = -1
+    _nowKeyPrev2 = -1
+    _nowKeyCurrent3 = -1
+    _nowKeyNext3 = -1
+    _nowKeyPrev3 = -1
+    _eMouseOverHandler = undefined
+    _eMouseOutHandler = undefined
+    _eMouseDownHandler = undefined
+    _eMouseMoveHandler = undefined
+    _eMouseUpHandler = undefined
+    _eWindowMouseUpHandler = undefined
+    _eClickNextBtnHandler = undefined
+    _eClickPrevBtnHandler = undefined
+    _eClickNextSlideHandler = undefined
+    _eClickPrevSlideHandler = undefined
+    _moveTween = undefined
+    _lastPos = undefined
+    onClickItem = undefined
+    indexCurrent = 0
+    positionLoopOneSide = 0
+    xNext = 0
+    xPrev = 0
+
+    mouse = null
+    mouseOld = null
+    mouseStart = null
+    mouseDiff = null
+    mouseDist = null
+
+    // progress
+    progress = {
+      value: 0,
+      start: 0,
+      total: 0,
+      offset: 0,
+    }
+
+    onInit() {
+      const { el } = this
+
+      const {
+        isDisablePc = false,
+        isDisableSp = false,
+        isLoop = false,
+        isLoopOneSide = false,
+        isAutoPlay = false,
+        interval = 5,
+        easePaginationProgress,
+        fps = 60,
+        isLastPositionRight = false,
+        isManual = false,
+      } = el.dataset.slider ? JSON.parse(el.dataset.slider) : {}
+
+      if ((!this.isSp && isDisablePc) || (this.isSp && isDisableSp)) {
+        el.classList.add('-disable')
+        this._isDisable = true
+        return
+      }
+
+      this._option = {
+        ...this.option,
+        isDisablePc,
+        isDisableSp,
+        isLoop,
+        isLoopOneSide,
+        isAutoPlay,
+        interval,
+        isLastPositionRight,
+        isManual,
+      }
+
+      this.framerate = 60 / fps
+
+      this.init()
+    }
+
+    init() {
+      if (this._isDisable || this._isInit) return
+      this._isInit = true
+
+      const { el, _option } = this
+
+      this._isLoopOneSide =
+        (this._option.isLoopOneSide === 'pc' && !this.isSp) ||
+        (this._option.isLoopOneSide === 'sp' && this.isSp) ||
+        this._option.isLoopOneSide === true
+      this._isLoop =
+        (this._option.isLoop === 'pc' && !this.isSp) ||
+        (this._option.isLoop === 'sp' && this.isSp) ||
+        this._option.isLoop === true ||
+        this._isLoopOneSide
+
+      this._lastSlide = _option.lastSlide || 1
+      this._lastSlideSp = _option.lastSlideSp || 1
+
+      this.onMove = _option.onMove
+      if (_option.onChange) {
+        this.onChange = _option.onChange
+      }
+
+      this.isManualAddBackground = _option.isManualAddBackground
+
+      this.elList = el.querySelector('[data-slider-list]')
+      this._parent = el
+      this._elCurrent = el.querySelectorAll('[data-slider-current]')
+      this._elAll = el.querySelectorAll('[data-slider-all]')
+      this._nextBtn = el.querySelector('[data-slider-next]')
+      this._prevBtn = el.querySelector('[data-slider-prev]')
+      this._progress = el.querySelector('[data-slider-progress]')
+      this._progressBar = el.querySelector('[data-slider-progress-bar]')
+      this._progressCircle = el.querySelector('[data-slider-progress-circle]')
+      this._paginationProgress = el.querySelector(
+        '[data-slider-pagination-progress]'
+      )
+
+      this._pos = { x: 0, y: 0 }
+      this._posOffset = { x: 0, y: 0 }
+      this._startPos = { x: 0, y: 0 }
+      this._listSize = { x: 0, y: 0 }
+      this._totalSize = 0
+
+      this.mouse = { x: 0, y: 0 }
+      this.mouseOld = { x: 0, y: 0 }
+      this.mouseStart = { x: 0, y: 0 }
+      this.mouseDiff = { x: 0, y: 0 }
+      this.mouseDist = { x: 0, y: 0 }
+
+      if (this._progress) {
+        this.progress.total = this._progress.getBoundingClientRect().width
+        this.progress.offset = this.el.offsetLeft
+        this._progressBar.style.transformOrigin = 'left'
+      }
+
+      this.count = 0
+
+      let elsItem = this.elList.querySelectorAll('[data-slider-item]')
+      const isCopied = !!this.el.dataset.sliderOriginalCount
+
+      if (this._isLoop && !isCopied) {
+        // ループの場合、要素をコピーして数を増やす
+        const fragment = document.createDocumentFragment()
+        elsItem.forEach((el) => {
+          fragment.append(el.cloneNode(true))
+
+          if (!('sliderItemMore' in el.dataset)) {
+            this.count++
+          }
+        })
+        const fragmentClone = fragment.cloneNode(true)
+
+        if (this._isLoopOneSide) {
+          Array.prototype.forEach.call(fragment.children, (el, i) => {
+            el.style.visibility = 'hidden'
+          })
+        }
+
+        this.elList.prepend(fragment)
+        this.elList.append(fragmentClone)
+
+        elsItem = this.elList.querySelectorAll('[data-slider-item]')
+        this.elsOutOfOneSide = Array.prototype.slice.call(
+          elsItem,
+          0,
+          this.count
+        )
+
+        this.el.dataset.sliderOriginalCount = this.count
+      } else {
+        // 非同期遷移前にすでに要素がコピーされている場合は増やさない
+        this.count = Number(this.el.dataset.sliderOriginalCount)
+        this.elsOutOfOneSide = Array.prototype.slice.call(
+          elsItem,
+          0,
+          this.count
+        )
+      }
+
+      this.item = Array.prototype.map.call(elsItem, (el, i) => {
+        const item = new SliderItem(el)
+
+        item.init()
+        item.onClick = (e) => {
+          if (this._isMoveUseBtn) return
+
+          if (this._isMouseMove) {
+            e.preventDefault()
+            e.stopPropagation()
+            this._isMouseMove = false
+            this.enableClick()
+          }
+        }
+
+        if (!this._isLoop && !('sliderItemMore' in el.dataset)) {
+          this.count++
+        }
+
+        return item
+      })
+
+      this._eMouseOverHandler = this._eMouseOver.bind(this)
+      addMouseenterListener(this._parent, this._eMouseOverHandler)
+
+      this._eMouseOutHandler = this._eMouseOut.bind(this)
+      addMouseleaveListener(this._parent, this._eMouseOutHandler)
+
+      this._eMouseDownHandler = this._eMouseDown.bind(this)
+      this._parent.addEventListener(
+        'mousedown',
+        this._eMouseDownHandler,
+        passive
+      )
+
+      this._eDragstartHandler = this._eDragstart.bind(this)
+      this._parent.addEventListener('dragstart', this._eDragstartHandler)
+
+      this._eMouseMoveHandler = this._eMouseMove.bind(this)
+      this._parent.addEventListener('mousemove', this._eMouseMoveHandler)
+
+      this._eMouseUpHandler = this._eMouseUp.bind(this)
+      this._parent.addEventListener('mouseup', this._eMouseUpHandler, passive)
+
+      this._eWindowMouseUpHandler = this._eMouseUp.bind(this)
+      window.addEventListener('mouseup', this._eWindowMouseUpHandler, passive)
+
+      this._eMouseDownHandler = this._eMouseDown.bind(this)
+      this._parent.addEventListener(
+        'touchstart',
+        this._eMouseDownHandler,
+        passive
+      )
+
+      this._eMouseMoveHandler = this._eMouseMove.bind(this)
+      this._parent.addEventListener('touchmove', this._eMouseMoveHandler)
+
+      this._eMouseUpHandler = this._eMouseUp.bind(this)
+      this._parent.addEventListener('touchend', this._eMouseUpHandler, passive)
+
+      this._eWindowMouseUpHandler = this._eMouseUp.bind(this)
+      window.addEventListener('touchend', this._eWindowMouseUpHandler, passive)
+
+      // NEXT,PREVボタン設定
+      if (this._nextBtn) {
+        this._eClickNextBtnHandler = this._eClickNextBtn.bind(this)
+        this._nextBtn.addEventListener('click', this._eClickNextBtnHandler)
+      }
+      if (this._prevBtn) {
+        this._eClickPrevBtnHandler = this._eClickPrevBtn.bind(this)
+        this._prevBtn.addEventListener('click', this._eClickPrevBtnHandler)
+        this._prevBtn.classList.add(CLASS_NAME_DISABLE_BUTTON)
+        this._prevBtn.style.pointerEvents = 'none'
+      }
+
+      // プログレスバーのつまみ
+      if (this._progressCircle) {
+        this._progressCircle.addEventListener(
+          'mousedown',
+          this._eMouseDownHandler,
+          passive
+        )
+        this._progressCircle.addEventListener(
+          'mouseup',
+          this._eMouseUpHandler,
+          passive
+        )
+        this._progressCircle.addEventListener(
+          'touchstart',
+          this._eMouseDownHandler,
+          passive
+        )
+        this._progressCircle.addEventListener(
+          'touchend',
+          this._eMouseUpHandler,
+          passive
+        )
+      }
+
+      this._setCurrent()
+      this._setAll()
+
+      // 社員詳細では、本人の次の方がスライダーの初期値になるように
+      const initialPosition = el.dataset.sliderInitialPosition
+      if (initialPosition) {
+        const initialIndex = initialPosition - 1
+        const lastLength = el.querySelectorAll('[data-slider-item]').length
+        this._moveTo(lastLength === initialIndex ? 0 : initialIndex, {
+          disableAnimation: true,
+        })
+      } else if (this._isLoop) {
+        this._moveTo(this.count, { disableAnimation: true })
+      }
+
+      this.onResize()
+
+      this.widthItem = this.item[0].width
+
+      this._setProgress(this._getProgress())
+
+      // カーソルを手に変える
+      this.elList.style.cursor = 'grab'
+    }
+
+    setTimer() {
+      if (this.timer) return
+
+      this.tlTimerProgress = gsapK.fromTo(
+        this._paginationProgress,
+        {
+          scaleX: 0,
+          transformOrigin: 'left',
+        },
+        {
+          scaleX: 1,
+          duration: this._option.interval,
+          ease: this._option.easePaginationProgress,
+        }
+      )
+
+      this.timer = gsap.delayedCall(this._option.interval, () => {
+        gsapK.set(this._paginationProgress, {
+          scaleX: 0,
+        })
+
+        if (
+          !this._isLoop &&
+          this.nowKey >=
+            this.item.length -
+              (!this.isSp ? this._lastSlide : this._lastSlideSp)
+        ) {
+          this._moveTo(0)
+        } else {
+          this._move(true)
+        }
+      })
+    }
+
+    stopTimer() {
+      if (!this.timer) return
+      gsapK.set(this._paginationProgress, {
+        scaleX: 0,
+      })
+      this.timer.kill()
+      this.tlTimerProgress.kill()
+      this.timer = null
+    }
+
+    onResize() {
+      if (this._isDisable || !this._isInit) return
+
+      const rectParent = this._parent.getBoundingClientRect()
+      this._lastPos = this._getLastPos()
+      this._listOffsetLeft = parseInt(
+        rectParent.left +
+          parseInt(
+            document.defaultView.getComputedStyle(this._parent, null)
+              .paddingLeft
+          )
+      )
+      this._listSize.x =
+        this._lastPos.right + this._pos.x * -1 + this._listOffsetLeft
+      this._maxMove =
+        Math.floor(rectParent.width / this._lastPos.width) *
+        this._lastPos.width *
+        0.6
+
+      this.elList.style.transform = ''
+
+      this._totalSize =
+        this.item[this.item.length - 1].el.getBoundingClientRect().left -
+        this.elList.getBoundingClientRect().left +
+        this.elList.scrollLeft
+
+      this.item.forEach((item) => {
+        item.onResize()
+      })
+
+      if (this._progress) {
+        this.progress.total = this._progress.getBoundingClientRect().width
+        this.progress.offset = this.el.offsetLeft
+      }
+
+      this._initialX = this._pos.x
+
+      this._moveTo(this.nowKey, { disableAnimation: true })
+    }
+
+    play() {
+      if (this._isPlay) return
+      this._isPlay = true
+      // this.setWillChange()
+      this.playTick()
+    }
+
+    pause() {
+      if (!this._isPlay) return
+      this._isPlay = false
+      // this.resetWillChange()
+      this.pauseTick()
+    }
+
+    /**
+     *
+     */
+    _eClickNextBtn(e) {
+      if (e) e.stopPropagation()
+      if (this.mouseDiffStartX > 0) return
+      this._move(true)
+    }
+
+    /**
+     *
+     */
+    _eClickPrevBtn(e) {
+      if (e) e.stopPropagation()
+      if (this.mouseDiffStartX > 0) return
+      this._move(false)
+    }
+
+    /**
+     *
+     */
+    _eDragstart(e) {
+      // Firefoxでドラッグしたときの不具合回避
+      e.preventDefault()
+    }
+
+    /**
+     *
+     */
+    _eMouseOver(e) {
+      // this.setWillChange()
+    }
+
+    /**
+     *
+     */
+    _eMouseOut(e) {
+      // this.resetWillChange()
+    }
+
+    /**
+     *
+     */
+    _eMouseDown(e) {
+      if (this._isMouseDown) return
+
+      this.el.style.cursor = ''
+      document.documentElement.style.cursor = 'grabbing'
+
+      if ('sliderProgressCircle' in e.target.dataset) {
+        this._isProgressDrag = true
+
+        if (this._progressCircle) {
+          this._progressCircle.classList.add('-grabbing')
+        }
+      }
+
+      const { x, y } = getClientPos(e)
+      this.mouseStart.x = this.mouse.x = x
+      this.mouseStart.y = this.mouse.y = y
+      this.mouseDiff.x = 0
+      this.mouseDiff.y = 0
+
+      this._isMouseDown = true
+      this._moveTotal = 0
+      this._startPos.x = this._isProgressDrag ? -this._pos.x : this._pos.x
+      if (this.onMouseDownHandle) {
+        this.onMouseDownHandle()
+      }
+    }
+
+    /**
+     *
+     */
+    _eMouseMove(e) {
+      if (this._isMoving) return
+      this.progress.start = e.clientX
+      if (this._isMouseDown) {
+        if (this._option.isAutoPlay) {
+          this.stopTimer()
+        }
+
+        this.mouseOld.x = this.mouse.x
+        this.mouseOld.y = this.mouse.y
+
+        const { x, y } = getClientPos(e)
+        this.mouse.x = x
+        this.mouse.y = y
+
+        this.mouseDiff.x = this.mouseOld.x - this.mouse.x
+        this.mouseDiff.y = this.mouseOld.y - this.mouse.y
+
+        this.elList.classList.add('-drag')
+
+        const diffY = y - this.mouseStart.y
+        const diffX = x - this.mouseStart.x
+
+        if (
+          diffX === 0 ||
+          Math.abs(diffY) / Math.abs(diffX) >= THRESHOLD_DIRECTION
+        ) {
+          // 上下方向
+          // スライダーの移動を無効にする
+          this._isMouseMoveVertical = true
+          return
+        } else {
+          // 左右方向
+          // 上下スクロールを無効にする
+          if (e.cancelable) {
+            e.preventDefault()
+          }
+        }
+      } else {
+        return
+      }
+
+      this._isMouseMoveVertical = false
+      this._isMouseMove = true
+      this.disableClick()
+      this._cancelMove()
+    }
+
+    /**
+     *
+     */
+    _eMouseUp(e) {
+      if (!this._isMouseDown) return
+
+      this._isMouseDown = false
+
+      if (this.onMouseUpHandle) {
+        this.onMouseUpHandle()
+      }
+
+      this.mouseDiffStartX = Math.abs(this.mouse.x - this.mouseStart.x)
+      if (this.mouseDiffStartX > 0 && !this._isMouseMoveVertical) {
+        if (!this.isSp || this._isProgressDrag) {
+          /* ドラッグ量の分だけ多く動かす、 isLoopOneSideのときは一番最初のスライドより左には行かないようにする */
+          const nowKey = Math.min(
+            Math.max(
+              this._getNowItemKey(),
+              this._isLoopOneSide && this.positionLoopOneSide === 0
+                ? this.count
+                : 0
+            ),
+            this.item.length - this._lastSlide
+          )
+          this._moveTo(nowKey, { isDrag: true })
+        } else {
+          let nowKey = this.nowKey
+          /* 一定以上スワイプしたら次or前へ進める */
+          /* 指を速く動かすほど移動しやすくする */
+          const swipeSpeed = this.mouseDiff.x * K_SWIPE
+          if (
+            Math.abs(-(this.mouse.x - this.mouseStart.x) + swipeSpeed) >=
+            THRESHOLD_SWIPE
+          ) {
+            nowKey =
+              this.mouseDiff.x > 0
+                ? this.nowKey + (1 + Math.floor(Math.abs(swipeSpeed) / 200))
+                : this.mouseDiff.x < 0
+                ? this.nowKey - (1 + Math.floor(Math.abs(swipeSpeed) / 200))
+                : this.nowKey
+          }
+          nowKey = Math.min(
+            Math.max(
+              nowKey,
+              this._isLoopOneSide && this.positionLoopOneSide === 0
+                ? this.count
+                : 0
+            ),
+            this.item.length - this._lastSlideSp
+          )
+          this._moveTo(nowKey, { isDrag: true })
+        }
+      } else {
+        if (this._option.isAutoPlay) {
+          this.setTimer()
+        }
+      }
+
+      this.mouseDiff.x = 0
+      this.mouseDiff.y = 0
+      this._isProgressDrag = false
+      document.documentElement.style.cursor = ''
+      if (this._progressCircle) {
+        this._progressCircle.style.cursor = ''
+      }
+      this.elList.style.cursor = 'grab'
+      this.elList.classList.remove('-drag')
+    }
+
+    /**
+     *
+     */
+    setWillChange() {
+      this.elList.style.willChange = 'transform'
+    }
+
+    /**
+     *
+     */
+    resetWillChange() {
+      this.elList.style.willChange = 'auto'
+    }
+
+    disableClick() {
+      this.item.forEach(({ el }) => {
+        el.style.pointerEvents = 'none'
+      })
+    }
+
+    enableClick() {
+      this.item.forEach(({ el }) => {
+        el.style.pointerEvents = 'auto'
+      })
+    }
+
+    onTick(time, deltaTime, frame) {
+      if (this._isDisable) return
+      if (frame % this.framerate !== 0) return
+      if (this._movingLoop) return
+      const { ease } = param
+
+      let slideDistance
+      if (this._progress) {
+        this.progress.value =
+          (this.progress.start - this.progress.offset) / this.progress.total
+        slideDistance =
+          (this._listSize.x - this._listSize.x / this.item.length) *
+          this.progress.value
+      }
+
+      if (this._isMouseDown && !this._isMouseMoveVertical) {
+        this.mouseDist.x = this._isProgressDrag
+          ? (this.mouseStart.x - this.mouse.x) * (this.item.length / 2)
+          : this.mouseStart.x - this.mouse.x
+        this.mouseDist.y = this.mouseStart.y - this.mouse.y
+
+        const dx = this.mouseDist.x
+        this._moveTotal += Math.abs(dx)
+
+        // if (this.isSp && Math.abs(this._moveTotal) > 10) {
+        //   mouse.isCancelable = true
+        // }
+
+        const tgX = this._startPos.x - dx
+        if (this._isProgressDrag && this.progress) {
+          // this._pos.x -= (tgX + this._pos.x) * ease
+          this._pos.x -= (slideDistance + this._pos.x) * ease
+        } else {
+          this._pos.x += (tgX - this._pos.x) * ease
+        }
+      } else {
+        this._pos.x += this._follow
+      }
+
+      if (!this._lastPos) {
+        this._lastPos = this._getLastPos()
+      }
+      const lastSlide = !this.isSp ? this._lastSlide : this._lastSlideSp
+      const max =
+        this._isLoopOneSide && this.positionLoopOneSide === 0
+          ? this._getXFromItemKey(this.count)
+          : 0
+      const min =
+        -this._listSize.x +
+        (this._option._isLastPositionRight
+          ? this.el.clientWidth
+          : this._lastPos.width * lastSlide)
+      if (this._pos.x > max) {
+        this._pos.x += (max - this._pos.x) * ease
+      }
+      if (this._pos.x < min) {
+        this._pos.x += (min - this._pos.x) * ease
+      }
+
+      if (!this._isMoveUseBtn && this.elList) {
+        this.setListPositionX()
+      }
+      if (this._isMouseDown) {
+        this._setProgress(this._getProgress())
+      }
+    }
+
+    setListPositionX(disableAnimation) {
+      this.xPrev = this.xNext
+      this.xNext = this._pos.x + this._posOffset.x
+      this.xReal = this.xNext - this._initialX
+
+      gsap.set(this.elList, {
+        x: this.xNext,
+      })
+      if (this.onMove) {
+        this.onMove(this.xReal, disableAnimation ? 0 : this.xNext - this.xPrev)
+      }
+    }
+
+    /**
+     *
+     */
+    _move(isNext) {
+      if (this._isMoveUseBtn) return
+
+      this._isMoveUseBtn = true
+
+      this._cancelMove()
+
+      let nowKey = this._getNowItemKey()
+      if (isNext) {
+        nowKey++
+        const lastSlide = !this.isSp ? this._lastSlide : this._lastSlideSp
+        if (nowKey >= this.item.length - lastSlide) {
+          nowKey = this.item.length - lastSlide
+        }
+      } else {
+        nowKey--
+        if (nowKey < 0) {
+          nowKey = 0
+        }
+      }
+
+      this._moveTo(nowKey)
+    }
+
+    /**
+     *
+     */
+    _moveTo(nowKey, { isDrag, disableAnimation } = {}) {
+      if (!disableAnimation && (this._isMoving || this._movingLoop)) return
+
+      const { isAutoPlay } = this._option
+
+      this._isMoving = true
+      if (nowKey >= this.count * 2 || nowKey < this.count) {
+        this._movingLoop = true
+      }
+
+      if (isAutoPlay) {
+        this.stopTimer()
+      }
+
+      this.nowKey = nowKey
+
+      this._setCurrent()
+      this._setBtnClass()
+      if (this.onChange) {
+        this.onChange(nowKey)
+      }
+
+      const tgX = this._getXFromItemKey(nowKey)
+
+      this._moveTween = gsapK.to(this._pos, {
+        x: tgX,
+        duration: disableAnimation ? 0 : isDrag ? 0.6 : 0.8,
+        ease: isDrag ? 'power2.out' : 'power2.inOut',
+        overwrite: true,
+        onUpdate: () => {
+          if (!(this.elList && this._pos && this._posOffset)) return
+          if (this.changeSlideAnimation && disableAnimation) {
+            const tl = gsap.timeline()
+            this.changeSlideAnimation({
+              tl,
+              changeSlide: () => {
+                this.setListPositionX(disableAnimation)
+              },
+            })
+          } else {
+            this.setListPositionX(disableAnimation)
+          }
+          // ドラッグ後またはボタン操作後、スライド移動時にプログレスバーも動かす
+          this._setProgress(this._getProgress())
+        },
+        onComplete: () => {
+          if (!(this.elList && this._pos)) return
+
+          this._pos.x = tgX
+
+          this._isMouseMove = false
+          this._isMoving = false
+          this._isMoveUseBtn = false
+          this._movingLoop = false
+          this.enableClick()
+
+          // 位置を即時に変更する
+          if (disableAnimation) {
+            this.setListPositionX(disableAnimation)
+            this._startPos.x = this._isProgressDrag ? -this._pos.x : this._pos.x
+          }
+
+          if (this._isLoop) {
+            if (nowKey >= this.count * 2) {
+              this._moveTo(nowKey - this.count, { disableAnimation: true })
+
+              if (this._isLoopOneSide) {
+                this.positionLoopOneSide++
+                if (this.positionLoopOneSide > 0) {
+                  this.elsOutOfOneSide.forEach((el, i) => {
+                    el.style.visibility = ''
+                  })
+                }
+              }
+            } else if (nowKey < this.count) {
+              this._moveTo(nowKey + this.count, { disableAnimation: true })
+
+              if (this._isLoopOneSide) {
+                this.positionLoopOneSide--
+                if (this.positionLoopOneSide === 0) {
+                  this.elsOutOfOneSide.forEach((el, i) => {
+                    el.style.visibility = 'hidden'
+                  })
+                }
+              }
+            } else {
+              if (isAutoPlay && this.isIntersecting) {
+                this.setTimer()
+              }
+            }
+          }
+
+          this._setBtnClass()
+        },
+      })
+    }
+
+    /**
+     *
+     */
+    _cancelMove() {
+      if (!this._isMoving) return
+
+      if (this._moveTween) {
+        this._moveTween.kill()
+      }
+
+      this._isMouseMove = false
+      this._isMoveUseBtn = false
+      this._isMoving = false
+    }
+
+    /**
+     *
+     */
+    _setCurrent() {
+      if (!this._isInit) return
+      if (
+        this._elCurrent.length &&
+        !('sliderItemMore' in this.item[this.nowKey].el.dataset)
+      ) {
+        this.indexCurrent = getLoopedNumber(this.nowKey, this.count)
+        this._elCurrent.forEach((item) => {
+          item.textContent =
+            this.indexCurrent + 1 < 10
+              ? '0' + (this.indexCurrent + 1)
+              : this.indexCurrent + 1
+        })
+
+        if (this.nowKey >= 0) {
+          if (this._nowKeyCurrent >= 0) {
+            this.item[this._nowKeyCurrent].el.classList.remove('-current')
+            this.item[this._nowKeyNext].el.classList.remove('-next')
+            this.item[this._nowKeyPrev].el.classList.remove('-prev')
+            if (this._isLoop) {
+              this.item[this._nowKeyCurrent2].el.classList.remove('-current')
+              this.item[this._nowKeyNext2].el.classList.remove('-next')
+              this.item[this._nowKeyPrev2].el.classList.remove('-prev')
+              this.item[this._nowKeyCurrent3].el.classList.remove('-current')
+              this.item[this._nowKeyNext3].el.classList.remove('-next')
+              this.item[this._nowKeyPrev3].el.classList.remove('-prev')
+            }
+          }
+
+          this._nowKeyCurrent = this.nowKey
+          this._nowKeyNext = getLoopedNumber(this.nowKey + 1, this.item.length)
+          this._nowKeyPrev = getLoopedNumber(this.nowKey - 1, this.item.length)
+          this.item[this._nowKeyCurrent].el.classList.add('-current')
+          this.item[this._nowKeyNext].el.classList.add('-next')
+          this.item[this._nowKeyPrev].el.classList.add('-prev')
+          if (this._isLoop) {
+            this._nowKeyCurrent2 = getLoopedNumber(
+              this._nowKeyCurrent + this.count,
+              this.item.length
+            )
+            this._nowKeyNext2 = getLoopedNumber(
+              this._nowKeyCurrent2 + 1,
+              this.item.length
+            )
+            this._nowKeyPrev2 = getLoopedNumber(
+              this._nowKeyCurrent2 - 1,
+              this.item.length
+            )
+            this._nowKeyCurrent3 = getLoopedNumber(
+              this._nowKeyCurrent - this.count,
+              this.item.length
+            )
+            this._nowKeyNext3 = getLoopedNumber(
+              this._nowKeyCurrent3 + 1,
+              this.item.length
+            )
+            this._nowKeyPrev3 = getLoopedNumber(
+              this._nowKeyCurrent3 - 1,
+              this.item.length
+            )
+            this.item[this._nowKeyCurrent2].el.classList.add('-current')
+            this.item[this._nowKeyNext2].el.classList.add('-next')
+            this.item[this._nowKeyPrev2].el.classList.add('-prev')
+            this.item[this._nowKeyCurrent3].el.classList.add('-current')
+            this.item[this._nowKeyNext3].el.classList.add('-next')
+            this.item[this._nowKeyPrev3].el.classList.add('-prev')
+          }
+        }
+      }
+    }
+
+    /**
+     *
+     */
+    _setAll() {
+      if (this._elAll.length) {
+        this._elAll.forEach((item) => {
+          item.textContent = this.count < 10 ? '0' + this.count : this.count
+        })
+      }
+    }
+
+    /**
+     *
+     */
+    _setBtnClass() {
+      if (this._nextBtn) {
+        this._nextBtn.classList.remove(CLASS_NAME_DISABLE_BUTTON)
+        this._nextBtn.style.pointerEvents = ''
+        this._prevBtn.classList.remove(CLASS_NAME_DISABLE_BUTTON)
+        this._prevBtn.style.pointerEvents = ''
+
+        const nowKey = this.nowKey
+        if (
+          nowKey === 0 ||
+          (this._isLoopOneSide &&
+            this.positionLoopOneSide === 0 &&
+            nowKey === this.count)
+        ) {
+          this._prevBtn.classList.add(CLASS_NAME_DISABLE_BUTTON)
+          this._prevBtn.style.pointerEvents = 'none'
+        }
+
+        const lastSlide = !this.isSp ? this._lastSlide : this._lastSlideSp
+        if (nowKey >= this.item.length - lastSlide) {
+          this._nextBtn.classList.add(CLASS_NAME_DISABLE_BUTTON)
+          this._nextBtn.style.pointerEvents = 'none'
+        }
+      }
+    }
+
+    /**
+     * プログレスバーの位置変更
+     */
+    _setProgress(_x) {
+      if (!this._progressBar) return
+
+      gsap.set(this._progressBar, {
+        scaleX: _x,
+      })
+      if (this._progressCircle) {
+        gsap.set(this._progressCircle, {
+          left: _x * 100 + '%',
+        })
+      }
+    }
+
+    /**
+     *
+     */
+    _getNowItemKey() {
+      let now = 0
+      let d = 9999
+      this._listOffsetLeft =
+        parseInt(
+          this._parent.getBoundingClientRect().left +
+            parseInt(
+              document.defaultView.getComputedStyle(this._parent, null)
+                .paddingLeft
+            )
+        ) +
+        // ここで閾値を調整
+        Math.min(Math.max(this.mouseDiff.x * 20, -this._maxMove), this._maxMove)
+      const len = this.item.length
+      for (let i = 0; i < len; i++) {
+        const item = this.item[i]
+        const pos = Math.abs(item.getPos().x - this._listOffsetLeft)
+        if (pos < d) {
+          d = pos
+          now = i
+        }
+      }
+
+      return now
+    }
+
+    /**
+     *
+     */
+    _getXFromItemKey(key) {
+      if (this.isDestroyed) return
+
+      const { sizeDifference } = this._option
+      let elWidth = 0
+      let targetWidth = 0
+      let distance = 0
+      let repeat = 1
+      if (sizeDifference) {
+        if (key !== 0) {
+          elWidth = this.el.clientWidth / 2
+          targetWidth = this.item[key].getPos().width / 2
+        }
+        for (let i = 0; i < key; i++) {
+          distance += this.item[i].getPos().width
+        }
+      } else {
+        distance = this.item[0].getPos().width
+        repeat = key
+      }
+
+      const margin = parseInt(
+        document.defaultView.getComputedStyle(this.item[0].el, null).marginRight
+      )
+
+      return this._option._isLastPositionRight &&
+        key >=
+          this.item.length - (!this.isSp ? this._lastSlide : this._lastSlideSp)
+        ? -this._listSize.x + this.el.clientWidth
+        : -(distance + margin - elWidth + targetWidth) * repeat
+    }
+
+    _getProgress() {
+      return Math.abs(this._pos.x) >= this._totalSize - 1
+        ? 1
+        : this._pos.x > 0
+        ? 0
+        : Math.abs(this._pos.x) / this._totalSize
+    }
+
+    _getLastPos() {
+      return this.item[this.item.length - 1].getPos()
+    }
+
+    onIntersect({ isIntersecting }) {
+      if (this._isDisable || !this._option) return
+
+      this.isIntersecting = isIntersecting
+      if (isIntersecting) {
+        // 見えたときに初めて初期化
+        // if (!this._option.isManual) {
+        //   this.init()
+        // }
+
+        this.play()
+        if (this._option.isAutoPlay) {
+          this.setTimer()
+        }
+      } else {
+        if (this._option.isAutoPlay) {
+          this.stopTimer()
+        }
+        this.pause()
+      }
+    }
+
+    onDestroy() {
+      if (!this._isDisable) {
+        if (this._isInit) {
+          this.pause()
+
+          if (this._option?.isAutoPlay) {
+            this.stopTimer()
+          }
+
+          this.item?.forEach((item) => {
+            item.dispose()
+          })
+
+          removeMouseenterListener(this._parent, this._eMouseOverHandler)
+          removeMouseleaveListener(this._parent, this._eMouseOutHandler)
+          this._parent.removeEventListener(
+            'mousedown',
+            this._eMouseDownHandler,
+            passive
+          )
+          this._parent.removeEventListener('dragstart', this._eDragstartHandler)
+          this._parent.removeEventListener('mousemove', this._eMouseMoveHandler)
+          this._parent.removeEventListener(
+            'mouseup',
+            this._eMouseUpHandler,
+            passive
+          )
+          window.removeEventListener(
+            'mouseup',
+            this._eWindowMouseUpHandler,
+            passive
+          )
+          this._parent.removeEventListener(
+            'touchstart',
+            this._eMouseDownHandler,
+            passive
+          )
+          this._parent.removeEventListener('touchmove', this._eMouseMoveHandler)
+          this._parent.removeEventListener(
+            'touchend',
+            this._eMouseUpHandler,
+            passive
+          )
+          window.removeEventListener(
+            'touchend',
+            this._eWindowMouseUpHandler,
+            passive
+          )
+          if (this._nextBtn) {
+            this._nextBtn.removeEventListener(
+              'click',
+              this._eClickNextBtnHandler
+            )
+          }
+          if (this._prevBtn) {
+            this._prevBtn.removeEventListener(
+              'click',
+              this._eClickPrevBtnHandler
+            )
+          }
+
+          if (this._progressCircle) {
+            this._progressCircle.removeEventListener(
+              'mousedown',
+              this._eMouseDownHandler,
+              passive
+            )
+            this._progressCircle.removeEventListener(
+              'mouseup',
+              this._eMouseUpHandler,
+              passive
+            )
+            this._progressCircle.removeEventListener(
+              'touchstart',
+              this._eMouseDownHandler,
+              passive
+            )
+            this._progressCircle.removeEventListener(
+              'touchend',
+              this._eMouseUpHandler,
+              passive
+            )
+          }
+
+          // reset
+          this._isDisable = false
+          this.item = null
+          this._isMouseDown = false
+          this._isMouseMove = false
+          this._isMouseMoveVertical = false
+          this._isProgressDrag = false
+          this._pos = null
+          this._posOffset = null
+          this._startPos = null
+          this._listSize = null
+          this._totalSize = 0
+          this._listOffsetLeft = 0 // ウィンドウ左端からのスライド left 位置
+          this._follow = 0
+          this._isMoving = false
+          this._isMoveUseBtn = false
+          this._moveTotal = 0
+          this.nowKey = 0
+          this._nowKeyCurrent = -1
+          this._nowKeyNext = -1
+          this._nowKeyPrev = -1
+          this._nowKeyCurrent2 = -1
+          this._nowKeyNext2 = -1
+          this._nowKeyPrev2 = -1
+          this._nowKeyCurrent3 = -1
+          this._nowKeyNext3 = -1
+          this._nowKeyPrev3 = -1
+          this._eMouseOverHandler = undefined
+          this._eMouseOutHandler = undefined
+          this._eMouseDownHandler = undefined
+          this._eMouseMoveHandler = undefined
+          this._eMouseUpHandler = undefined
+          this._eWindowMouseUpHandler = undefined
+          this._eClickNextBtnHandler = undefined
+          this._eClickPrevBtnHandler = undefined
+          this._eClickNextSlideHandler = undefined
+          this._eClickPrevSlideHandler = undefined
+          this._moveTween = undefined
+          this._lastPos = undefined
+          this.onClickItem = undefined
+          this.indexCurrent = 0
+
+          this.mouse = null
+          this.mouseOld = null
+          this.mouseStart = null
+          this.mouseDiff = null
+          this.mouseDist = null
+        }
+
+        this._option = null
+      }
+    }
+  }).register()
+</script>

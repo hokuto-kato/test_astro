@@ -1,0 +1,178 @@
+---
+import { Sprite } from 'astro-icon'
+import store from '~/astro/store'
+import { getUniqueNumber, mediaPc, mediaSp } from '~/astro/utils'
+import Body from './Body.astro'
+import Directives from '~/components/directives/Directives.astro'
+import GTMHead from './GTMHead.astro'
+import GTMBody from './GTMBody.astro'
+import '~css/main.sass'
+
+export type Meta = {
+  title?: string
+  description?: string
+  ogImage?: string
+  ogImageWidth?: string
+  ogImageHeight?: string
+  ogp?: {
+    mediaItemUrl: string
+    mediaDetails: {
+      width: number
+      height: number
+    }
+  }
+}
+
+export type Props = {
+  meta: Meta
+  id?: string
+  preload?: string[]
+  preloadPc?: string[]
+  preloadSp?: string[]
+  isTop?: boolean
+  isHideFooter?: boolean
+  class?: string
+}
+
+const {
+  meta: {
+    title = '',
+    description = '',
+    ogImage = '',
+    ogImageWidth = '',
+    ogImageHeight = '',
+    ogp,
+  },
+  id,
+  preload = [],
+  preloadPc = [],
+  preloadSp = [],
+  isTop = false,
+  isHideFooter = false,
+  class: className,
+} = Astro.props
+
+const pageId = (store.pageId = `${id || className}${
+  import.meta.env.DEV ? getUniqueNumber('pageId') : ''
+}`)
+
+const siteUrl = Astro.site?.href || Astro.url.origin
+const canonicalURL = (store.canonicalURL = Astro.site
+  ? new URL(Astro.url.pathname, Astro.site).href
+  : '')
+
+const siteTitle = _ENV_.siteTitle
+const titleText = isTop
+  ? title || siteTitle
+  : `${title}${title && siteTitle ? ' | ' : ''}${siteTitle}`
+
+const siteOgImage = _ENV_.ogImage
+const ogImageText = ogp
+  ? ogp.mediaItemUrl
+  : ogImage
+  ? `${siteUrl}${ogImage}`
+  : siteOgImage
+  ? `${siteUrl}${siteOgImage}`
+  : ''
+const ogImageWidthText = `${
+  ogp ? ogp.mediaDetails.width : ogImageWidth || _ENV_.ogImageWidth || ''
+}`
+const ogImageHeightText = `${
+  ogp ? ogp.mediaDetails.height : ogImageHeight || _ENV_.ogImageHeight || ''
+}`
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    {_ENV_.GTM_ID && <GTMHead />}
+
+    <meta charset="UTF-8" />
+    <title>{titleText}</title>
+    {description && <meta name="description" content={description} />}
+    <meta name="viewport" content="width=device-width" />
+
+    {/* <link rel="icon" sizes="16x16" href="/favicon.ico" /> */}
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    {/* <link rel="icon" type="image/svg+xml" href="/favicon.svg" /> */}
+    {
+      /* <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg" /> */
+    }
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    {
+      ogImageText && (
+        <>
+          <meta property="og:image" content={ogImageText} />
+          <meta property="og:image:secure_url" content={ogImageText} />
+        </>
+      )
+    }
+    {
+      ogImageWidthText && (
+        <meta property="og:image:width" content={ogImageWidthText} />
+      )
+    }
+    {
+      ogImageHeightText && (
+        <meta property="og:image:height" content={ogImageHeightText} />
+      )
+    }
+
+    <meta property="og:title" content={titleText} />
+    <meta property="og:site_name" content={siteTitle} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:type" content={isTop ? 'website' : 'article'} />
+    {
+      canonicalURL && (
+        <>
+          <meta property="og:url" content={canonicalURL} />
+          <link rel="canonical" href={canonicalURL} />
+        </>
+      )
+    }
+
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    {preload.map((href) => <link rel="preload" href={href} as="image" />)}
+    {
+      preloadPc.map((href) => (
+        <link rel="preload" href={href} as="image" media={mediaPc} />
+      ))
+    }
+    {
+      preloadSp.map((href) => (
+        <link rel="preload" href={href} as="image" media={mediaSp} />
+      ))
+    }
+
+    {/* Webフォント： Google Fonts */}
+    <!-- <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /> -->
+    <!--<link-->
+    <!--  href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap"-->
+    <!--  rel="stylesheet"-->
+    <!--/>-->
+
+    {/* Webフォント： Adobe Fonts */}
+    <link rel="stylesheet" href="https://use.typekit.net/bmj7mvj.css" />
+
+    <slot name="head" />
+  </head>
+
+  <body id={id}>
+    {_ENV_.GTM_ID && <GTMBody />}
+
+    <Sprite.Provider>
+      <Body pageId={pageId}>
+        <slot />
+        <Fragment slot="fixed">
+          <slot name="fixed" />
+        </Fragment>
+      </Body>
+      <Directives />
+    </Sprite.Provider>
+  </body>
+</html>

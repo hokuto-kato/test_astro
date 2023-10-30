@@ -1,0 +1,61 @@
+@use "size" as *
+@use "easing" as *
+@use "color" as *
+
+$hover-selector-native: '[data-whatintent="mouse"] &:hover'
+$hover-selector-astro: ':global([data-whatintent="mouse"]) &:hover'
+$hover-selector: $hover-selector-astro
+
+@mixin hover-native()
+  #{$hover-selector-native}
+    @content
+
+@mixin hover-astro()
+  #{$hover-selector-astro}
+    @content
+
+@mixin hover()
+  +hover-astro
+    @content
+
+@mixin hover-line($color: #dee3e4, $margin: 6px)
+  position: relative
+
+  &::after
+    content: ''
+    position: absolute
+    left: 0
+    bottom: -$margin
+    width: 100%
+    height: 1px
+    background-color: $color
+    transform: scaleX(0)
+    transition: transform 0.3s
+
+@mixin hover-line-animation
+  &::after
+    animation: hover-line 0.6s
+
+$duration-hover-line-up: 1.6s
+
+@mixin hover-line-up-animation
+  animation: hover-line-up $duration-hover-line-up infinite
+
+@mixin hover-line-down-animation
+  animation: hover-line-down $duration-hover-line-up infinite
+
+@mixin hover-line-set($color: #dee3e4, $margin: 6px)
+  +hover-line($color, $margin)
+  +hover
+    +hover-line-animation
+
+@mixin hover-circle-up-animation
+  transition: transform 0.3s $easeOutQuart, opacity 0.1s $easeOutQuad
+
+@mixin hover-zoom
+  transition: transform 0.8s $easeInOutCubic
+
+@mixin hover-zoom-hover
+  transform: scale(1.2)
+  transition-duration: 4s
+  transition-timing-function: $easeOutSine

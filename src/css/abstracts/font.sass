@@ -1,0 +1,123 @@
+@use "sass:math"
+@use "variables" as *
+@use 'sass' as *
+@use "browser" as *
+
+//
+// font
+//
+
+/// @group font
+$font-family-gothic: YuGothic, '游ゴシック', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif
+/// @group font
+$font-family-mincho: YuMincho, '游明朝', 'Times New Roman', 'Hiragino Mincho ProN', 'HGS明朝B', 'ＭＳ Ｐ明朝', serif
+/// @group font
+$font-family-en: aktiv-grotesk, sans-serif
+
+/// ブラウザのデフォルトフォントサイズ ※不変
+/// @group font
+$font-size-browser: 16px
+/// ブラウザのデフォルトフォントサイズ (SP) ※不変
+/// @group font
+$font-size-browser-sp: 16px * 2
+
+/// @group font
+$font-size-base-px: 14px
+/// @group font
+$font-size-base: (math.div($font-size-base-px, $font-size-browser)) * 1rem
+/// @group font
+$font-size-base-px-sp: 13px * 2
+/// @group font
+$font-size-base-sp: math.div($font-size-base-px-sp, $font-size-browser-sp) * 1rem
+
+/// @group font
+$font-weight-regular: 400
+/// @group font
+$font-weight-medium: 500
+/// @group font
+$font-weight-bold: 600
+
+$enableMinFontSize: true
+
+/// 日本語フォント
+/// @group font
+=font-jp-regular()
+  font-weight: $font-weight-regular
+
+/// @group font
+=font-jp-medium()
+  font-weight: $font-weight-medium
+
+/// @group font
+=font-jp-bold()
+  font-weight: $font-weight-bold
+  +browser-android
+    font-weight: 700
+
+/// @group font
+=font-jp()
+  +font-jp-medium()
+
+/// 細字
+/// @group font
+=font-narrow()
+  transform: scaleX(0.9)
+
+=font-narrow-left()
+  +font-narrow
+  width: 111.1%
+  text-align: justify
+  transform-origin: left
+
+=font-narrow-right()
+  +font-narrow-left
+  text-align: right
+  transform-origin: right
+
+=font-narrow-center()
+  +font-narrow-left
+  text-align: center
+  transform-origin: center
+
+/// 英字フォント
+/// @group font
+=font-en-regular()
+  font-family: $font-family-en
+  font-weight: 400
+
+/// @group font
+=font-en-medium()
+  font-family: $font-family-en
+  font-weight: 500
+
+/// @group font
+=font-en-semi-bold()
+  font-family: $font-family-en
+  font-weight: 600
+
+/// @group font
+=font-en-bold()
+  font-family: $font-family-en
+  font-weight: 700
+
+/// @group font
+=font-en-extra-bold()
+  font-family: $font-family-en
+  font-weight: 800
+
+/// @group font
+=font-en()
+  +font-en-regular()
+
+/// 縁取り（透過）
+/// @group font
+=text-stroke($width: 1px, $color: currentColor)
+  color: transparent
+  -webkit-text-fill-color: transparent
+  -webkit-text-stroke: $width $color
+
+/// 縁取り（塗りつぶし）
+/// @group font
+=text-stroke-fill($color-fill, $width: 1px, $color: currentColor)
+  color: $color-fill
+  text-shadow: $color $width 0, $color (-$width) 0, $color 0 (-$width), $color 0 $width, $color $width $width, $color (-$width) $width, $color $width (-$width), $color (-$width) (-$width)

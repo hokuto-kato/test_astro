@@ -1,0 +1,24 @@
+---
+import { getDataset } from '~/astro/utils'
+
+export type Props = {
+  class?: string
+}
+
+const { class: className } = Astro.props
+
+const dataset = getDataset(Astro.props)
+---
+
+{/* NOTE: ここにHTMLを記述 */}
+<div class:list={['Template', className]} {...dataset}>
+  <slot />
+</div>
+
+<script>
+  // import Local from '~js/parentClass/Local'
+  // ;(class extends Local {
+  //   static componentName = 'Template'
+  //   // NOTE: ここにJSを記述
+  // }.register())
+</script>

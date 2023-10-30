@@ -1,0 +1,7 @@
+@use 'easing' as *
+
+*[data-opacity-io]
+  opacity: 0
+  transition: opacity 0.6s $easeOutCubic
+  &.isIntersect_opacity
+    opacity: 1

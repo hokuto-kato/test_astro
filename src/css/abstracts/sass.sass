@@ -1,0 +1,16 @@
+@use "sass:math"
+
+/// 値の単位を除外する
+///
+/// @param {Number(any)} $number - 単位値
+///
+/// @return {Number} - 単位を除外した数値
+///
+/// @group Sass
+@function remove-unit($number)
+  @if type-of($number) != number
+    @error "#{ $number } is not a number."
+
+    @return false
+
+  @return math.div($number, ($number * 0 + 1))

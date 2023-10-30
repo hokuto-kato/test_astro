@@ -1,0 +1,9 @@
+dist/
+tsconfig.json
+.vscode
+*.glsl
+*.vert
+*.frag
+/src/js/vendors/*
+/vendors/*
+.idea

@@ -1,0 +1,372 @@
+---
+import { Picture } from 'astro:assets'
+import type { ImgAttributes } from 'astro:assets'
+import type { ImageOutputFormat } from 'astro'
+import path from 'node:path'
+import imageSize from 'image-size'
+import store from '~/astro/store'
+import {
+  getDataset,
+  getHashId,
+  getVariableSizeRem,
+  mediaSp,
+} from '~/astro/utils'
+import type { HTMLAttributes, HTMLTag } from 'astro/types'
+
+export type Props = {
+  src: string
+  alt?: string
+  width?: number | string
+  height?: number | string
+  class?: string
+  'class:list'?: HTMLAttributes<HTMLTag>['class:list']
+  options?: {
+    isPublic?: boolean
+    isDisableLazyLoad?: boolean
+    isDisableRelatedFiles?: boolean
+    isDisableWebp?: boolean
+    is2x?: boolean
+    isDisable2xPc?: boolean
+    isDisable2xSp?: boolean
+    isDisableSize?: boolean
+    isDisableVariableSize?: boolean
+    isSpInPortrait?: boolean
+    srcSp?: string
+    widthSp?: number
+    heightSp?: number
+    classNamePicture?: string
+  }
+}
+
+const PATH_BASE = '../../images'
+const FORMATS: ImageOutputFormat[] = ['webp']
+
+const { src: propSrc = '', alt = '', options = {} } = Astro.props
+let { class: className } = Astro.props
+
+const classList = Astro.props['class:list']
+if (classList) {
+  className = typeof classList === 'string' ? classList : classList.join(' ')
+  className = className?.replaceAll(',', ' ')
+}
+
+const pathSrc = `${PATH_BASE}${propSrc.replace('/src/images', '')}`
+const isSvg = propSrc.endsWith('.svg')
+
+const {
+  isPublic = !propSrc ||
+    propSrc.startsWith('/assets/') ||
+    propSrc.startsWith('http'),
+  isDisableLazyLoad = false,
+  isDisableRelatedFiles = /^(http|<\?)/.test(propSrc) || isSvg || isPublic,
+  isDisableWebp = !_ENV_.enableWebP || isDisableRelatedFiles,
+  is2x = false,
+  isDisable2xPc = is2x || isDisableRelatedFiles,
+  isDisable2xSp = is2x || isDisableRelatedFiles,
+  isDisableSize = false,
+  isDisableVariableSize = false,
+  isSpInPortrait = false,
+  srcSp: propSrcSp,
+  widthSp,
+  heightSp,
+  classNamePicture,
+} = options
+
+const imagesRecord = import.meta.glob<ImageMetadata | string>(
+  '../../images/**/*',
+  {
+    import: 'default',
+  }
+)
+
+const { src, width, height, srcset2x, srcsetSp, sizeSp } = await (isPublic
+  ? // public
+    async function getPublicData() {
+      let width
+      let height
+      if (!isDisableSize) {
+        const { width: originalWidth, height: originalHeight } = imageSize(
+          path.resolve('public', propSrc.replace(/^\//, ''))
+        )
+        width = Astro.props.width ?? originalWidth
+        width = Number(width)
+        height =
+          Astro.props.height ??
+          (width && originalWidth && originalHeight
+            ? (Number(width) / originalWidth) * originalHeight
+            : originalHeight)
+        height = Number(height)
+      }
+
+      return {
+        src: propSrc,
+        width,
+        height,
+        srcset2x: null,
+        srcsetSp: null,
+        sizeSp: null,
+      }
+    }
+  : isSvg
+  ? // SVG
+    async function getSvgData() {
+      const imageRecord = imagesRecord[pathSrc]
+      if (!imageRecord) {
+        throw new Error(`SVG file not found for "${pathSrc}" path.`)
+      }
+
+      const image = await imageRecord()
+      const {
+        src,
+        width: originalWidth,
+        height: originalHeight,
+      } = typeof image === 'string'
+        ? {
+            src: image,
+            ...imageSize(path.resolve('src/astro/', pathSrc)),
+          }
+        : image
+      let { width = originalWidth } = Astro.props
+      width = Number(width)
+      let {
+        height = width && originalWidth && originalHeight
+          ? (Number(width) / originalWidth) * originalHeight
+          : originalHeight,
+      } = Astro.props
+      height = Number(height)
+
+      return {
+        src,
+        width,
+        height,
+        srcset2x: null,
+        srcsetSp: null,
+        sizeSp: null,
+      }
+    }
+  : // Image
+    async function getImageData() {
+      // PC
+      const imageRecord = imagesRecord[pathSrc]
+      if (!imageRecord) {
+        throw new Error(`Image file not found for "${pathSrc}" path.`)
+      }
+
+      const {
+        src: originalSrc,
+        width: originalWidth,
+        height: originalHeight,
+      } = (await imageRecord()) as ImageMetadata
+
+      let { width = originalWidth / (is2x ? 2 : 1) } = Astro.props
+      width = Number(width)
+      let {
+        height = width
+          ? (Number(width) / originalWidth) * originalHeight
+          : originalHeight / (is2x ? 2 : 1),
+      } = Astro.props
+      height = Number(height)
+
+      // common
+      const picture = await Picture({
+        src: originalSrc,
+        alt,
+        widths: [originalWidth],
+        formats: isDisableWebp ? [] : FORMATS,
+        aspectRatio: `${originalWidth}:${originalHeight}`,
+      })
+
+      const src = isDisableWebp
+        ? (picture.image as ImgAttributes).src!
+        : picture.sources[0].srcset.split(' ')[0]
+
+      // PC 2x
+      let srcset2x
+      if (!isDisable2xPc) {
+        const pathSrc2x = pathSrc
+          .replace('/1x/', '/2x/')
+          .replace(/(\.[\w\.]+)$/, '@2x$1')
+        const isSrc2x = pathSrc2x in imagesRecord
+
+        if (isSrc2x) {
+          const {
+            src: originalSrc2x,
+            width: originalWidth2x,
+            height: originalHeight2x,
+          } = (await imagesRecord[pathSrc2x]()) as ImageMetadata
+
+          const picture2x = await Picture({
+            src: originalSrc2x,
+            alt,
+            widths: [originalWidth2x],
+            formats: isDisableWebp ? [] : FORMATS,
+            aspectRatio: `${originalWidth2x}:${originalHeight2x}`,
+          })
+          const src2x = isDisableWebp
+            ? (picture2x.image as ImgAttributes).src!
+            : picture2x.sources[0].srcset.split(' ')[0]
+          srcset2x = `${src} 1x,${src2x} 2x`
+        }
+      }
+
+      // SP
+      let srcsetSp
+      let sizeSp
+      if (!isDisableRelatedFiles && (propSrcSp || pathSrc.includes('/pc/'))) {
+        const pathSrcSp = propSrcSp
+          ? `${PATH_BASE}${propSrcSp}`
+          : pathSrc.replace('/pc/', '/sp/')
+        const isSrcSp = pathSrcSp in imagesRecord
+
+        if (isSrcSp) {
+          const {
+            src: originalSrcSp,
+            width: originalWidthSp,
+            height: originalHeightSp,
+          } = (await imagesRecord[pathSrcSp]()) as ImageMetadata
+
+          const {
+            widthSp = originalWidthSp / (is2x ? 2 : 1),
+            heightSp = originalHeightSp / (is2x ? 2 : 1),
+          } = options
+
+          const pictureSp = await Picture({
+            src: originalSrcSp,
+            alt,
+            widths: [originalWidthSp],
+            formats: isDisableWebp ? [] : FORMATS,
+            aspectRatio: `${originalWidthSp}:${originalHeightSp}`,
+          })
+
+          srcsetSp = isDisableWebp
+            ? (pictureSp.image as ImgAttributes).src!
+            : pictureSp.sources[0].srcset.split(' ')[0]
+
+          if (!isDisableSize) {
+            sizeSp = {
+              width: widthSp,
+              height: heightSp,
+            }
+          }
+
+          // SP 2x
+          if (!isDisable2xSp) {
+            const pathSrcSp2x = pathSrcSp
+              .replace('/1x/', '/2x/')
+              .replace(/(\.[\w\.]+)$/, '@2x$1')
+            const isSrcSp2x = pathSrcSp2x in imagesRecord
+
+            if (isSrcSp2x) {
+              const {
+                src: originalSrcSp2x,
+                width: originalWidthSp2x,
+                height: originalHeightSp2x,
+              } = (await imagesRecord[pathSrcSp2x]()) as ImageMetadata
+
+              const pictureSp2x = await Picture({
+                src: originalSrcSp2x,
+                alt,
+                widths: [originalWidthSp2x],
+                formats: isDisableWebp ? [] : FORMATS,
+                aspectRatio: `${originalWidthSp2x}:${originalHeightSp2x}`,
+              })
+
+              const srcSp2x = isDisableWebp
+                ? (pictureSp2x.image as ImgAttributes).src!
+                : pictureSp2x.sources[0].srcset.split(' ')[0]
+              srcsetSp = `${srcsetSp} 1x,${srcSp2x} 2x`
+            }
+          }
+        }
+      }
+
+      return {
+        src,
+        width,
+        height,
+        srcset2x,
+        srcsetSp,
+        sizeSp,
+      }
+    })()
+
+const media = `${mediaSp}${isSpInPortrait ? ', (orientation: portrait)' : ''}`
+
+// 可変サイズ
+let style
+if (!isDisableVariableSize && !isDisableSize && width) {
+  const sizeId = `${store.pageId}${width}${sizeSp?.width!}${media.replace(
+    /\n|\s/gm,
+    ''
+  )}`
+  const id = `${src}${sizeId}`
+  let classNameSelf = store.imgIds && store.imgIds[id]
+
+  if (!classNameSelf) {
+    if (!store.imgIds) {
+      store.imgIds = {}
+    }
+    classNameSelf = `img-${getHashId(src, 0, 3) + getHashId(sizeId, 0, 3)}`
+    store.imgIds[id] = classNameSelf
+    const selector = `:where(.${classNameSelf})`
+
+    style = `${selector} {
+      width: ${getVariableSizeRem(width)};
+      height: auto;
+    }`
+    if (srcsetSp || widthSp) {
+      style += `@media ${media} {
+        ${selector} {
+          width: ${getVariableSizeRem(sizeSp?.width! * 0.5 || widthSp!)};
+          ${
+            sizeSp?.height! || heightSp
+              ? `height: ${getVariableSizeRem(
+                  sizeSp?.height! * 0.5 || heightSp!
+                )};`
+              : ''
+          }
+        }
+      }`
+    } else {
+      style += `@media ${media} {
+        ${selector} {
+          width: 100%;
+        }
+      }`
+    }
+    style = style.replace(/\n|\s/gm, '')
+  }
+
+  className += ` ${classNameSelf}`
+}
+
+// data属性
+const dataset = getDataset(Astro.props)
+
+// タグ名
+const Picture = isDisableRelatedFiles || !srcsetSp ? Fragment : 'picture'
+---
+
+{style && <style aria-hidden="true" set:text={style} />}
+<Picture class={classNamePicture}>
+  {
+    srcsetSp && (
+      <source
+        srcset={srcsetSp}
+        width={sizeSp?.width}
+        height={sizeSp?.height}
+        media={media}
+      />
+    )
+  }
+  <img
+    src={src}
+    srcset={srcset2x}
+    alt={alt}
+    width={isDisableSize ? null : width}
+    height={isDisableSize ? null : height}
+    class={className}
+    loading={isDisableLazyLoad ? null : 'lazy'}
+    {...dataset}
+  />
+</Picture>

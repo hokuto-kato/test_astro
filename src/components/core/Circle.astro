@@ -1,0 +1,40 @@
+---
+export type Props = {
+  diameter: number
+  strokeWidth?: number
+  progress?: number
+  color?: string
+  class?: string
+}
+
+const {
+  diameter,
+  strokeWidth = 2,
+  progress = 0,
+  color = 'currentColor',
+  class: className,
+} = Astro.props
+
+const circumference = Math.ceil(diameter * 3.14)
+const strokeDasharray = circumference
+const strokeDashoffset = circumference * (1 - progress)
+const transform = `rotate(-90 ${(diameter + 2) / 2} ${(diameter + 2) / 2})`
+---
+
+<svg
+  class={className}
+  viewBox={`0 0 ${diameter + 2} ${diameter + 2}`}
+  data-circle
+>
+  <circle
+    data-circle-path={circumference}
+    cx={`${(diameter + 2) / 2}`}
+    cy={`${(diameter + 2) / 2}`}
+    r={`${diameter / 2}`}
+    fill="transparent"
+    stroke={color}
+    stroke-width={strokeWidth}
+    stroke-dasharray={strokeDasharray}
+    stroke-dashoffset={strokeDashoffset}
+    transform={transform}></circle>
+</svg>

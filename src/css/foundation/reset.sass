@@ -1,0 +1,129 @@
+*,
+*::before,
+*::after
+  box-sizing: border-box
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+ul,
+ol,
+dl,
+dd,
+th,
+td,
+hr,
+iframe,
+fieldset,
+legend,
+button,
+input,
+textarea,
+select,
+option
+  margin: 0
+  padding: 0
+  border: none
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+small,
+strong,
+sub,
+sup,
+th
+  font-size: inherit
+  font-weight: inherit
+
+// pre,
+// code,
+// kbd,
+// samp {
+//   font-family: inherit;
+// }
+
+address,
+em,
+var,
+cite,
+dfn
+  font-style: normal
+
+caption,
+th
+  text-align: left
+
+a,
+  /* del,*/
+ins,
+abbr[title]
+  text-decoration: none
+
+html
+  text-size-adjust: 100%
+  -webkit-text-size-adjust: 100%
+  // NOTE: iPhoneでフォントサイズが大きくなってしまう問題 https://note.spiqa.design/6629/
+  // -moz-osx-font-smoothing: grayscale;
+  // -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0)
+
+body
+  line-height: 1
+
+ul,
+ol
+  list-style-type: none
+
+table
+  border-collapse: collapse
+  border-spacing: 0
+
+a
+  color: inherit
+
+q::before,
+q::after
+  content: none
+
+sub,
+sup
+  vertical-align: baseline
+
+mark
+  background: none
+  color: inherit
+
+svg
+  overflow: visible
+
+//
+// form
+//
+
+button,
+input,
+textarea,
+select
+  background: none
+  color: inherit
+  font-family: inherit
+  font-size: inherit
+// appearance: none;
+
+select
+  border-radius: 0
+  appearance: none
+
+  &::-ms-expand
+    display: none

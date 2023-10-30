@@ -1,0 +1,14 @@
+@use "sass:math"
+@use "sass" as *
+
+/// 美しいグラデーション
+///
+/// @param {String} $direction - 向き (eg. to right)
+/// @param {Color} $from[#000] - 開始色
+/// @param {Color} $to[transparent] - 終了色
+/// @param {Number(%)} $start-position[0%] - グラデーション開始位置
+///
+/// @group gradient
+@function smooth-gradient( $direction, $from: #000, $to: transparent, $start-position: 0%)
+  $start-position-rate: math.div(remove-unit(100% - $start-position), 100)
+  @return linear-gradient($direction, rgba($from, 1) $start-position + 0% * $start-position-rate, rgba($from, 0.738) $start-position + 19% * $start-position-rate, rgba($from, 0.541) $start-position + 34% * $start-position-rate, rgba($from, 0.382) $start-position + 47% * $start-position-rate, rgba($from, 0.278) $start-position + 56.5% * $start-position-rate, rgba($from, 0.194) $start-position + 65% * $start-position-rate, rgba($from, 0.126) $start-position + 73% * $start-position-rate, rgba($from, 0.075) $start-position + 80.2% * $start-position-rate, rgba($from, 0.042) $start-position + 86.1% * $start-position-rate, rgba($from, 0.021) $start-position + 91% * $start-position-rate, rgba($from, 0.008) $start-position + 95.2% * $start-position-rate, rgba($from, 0.002) $start-position + 98.2% * $start-position-rate, rgba($from, 0) $start-position + 100% * $start-position-rate)

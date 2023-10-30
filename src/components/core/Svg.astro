@@ -1,0 +1,127 @@
+---
+import { SpriteAll } from 'astro-icon'
+import imageSize from 'image-size'
+import path from 'node:path'
+import store from '~/astro/store'
+import { getDataset, getHashId, getVariableSizeRem } from '~/astro/utils'
+import type { HTMLAttributes, HTMLTag } from 'astro/types'
+
+export type Props = {
+  name: string
+  alt?: string
+  width?: number | string
+  height?: number | string
+  class?: string
+  'class:list'?: HTMLAttributes<HTMLTag>['class:list']
+  options?: {
+    fill?: string
+    stroke?: string
+    strokeWidth?: number
+    isDisableSize?: boolean
+    isDisableVariableSize?: boolean
+    isSpInPortrait?: boolean
+    optimize?: boolean
+    widthSp?: number
+    heightSp?: number
+  }
+}
+
+const { alt, options = {} } = Astro.props
+const {
+  fill = 'currentColor',
+  stroke,
+  strokeWidth,
+  isDisableSize = false,
+  isDisableVariableSize,
+  isSpInPortrait = false,
+  optimize = true,
+  widthSp,
+  heightSp,
+} = options
+let { name, class: className } = Astro.props
+name = name.replace('.svg', '')
+
+const classList = Astro.props['class:list']
+if (classList) {
+  className = typeof classList === 'string' ? classList : classList.join(' ')
+  className = className?.replaceAll(',', ' ')
+}
+
+const { width: originalWidth, height: originalHeight } = await imageSize(
+  path.resolve('src/icons/', `${name}.svg`),
+)
+let { width = originalWidth } = Astro.props
+width = Number(width)
+let {
+  height = width && originalWidth && originalHeight
+    ? (width / originalWidth) * originalHeight
+    : originalHeight,
+} = Astro.props
+height = Number(height)
+
+const media = `(max-width: ${_ENV_.breakpoint - 0.01}px)${
+  isSpInPortrait ? ', (orientation: portrait)' : ''
+}`
+
+// 可変サイズ
+let style
+if (width && height) {
+  const id = `${store.pageId}${name}${className}${width}`
+  let classNameSelf = store.svgIds && store.svgIds[id]
+
+  if (!classNameSelf) {
+    const isSetSize = !isDisableVariableSize && !isDisableSize
+    if (!store.svgIds) {
+      store.svgIds = {}
+    }
+    classNameSelf = `svg-${getHashId(id, 0, 6)}`
+    store.svgIds[id] = classNameSelf
+    const selector = `:where(.${classNameSelf})`
+
+    style = `${selector} {
+      ${
+        isSetSize
+          ? `
+        width: ${getVariableSizeRem(width)};
+        height: ${getVariableSizeRem(height)};
+      `
+          : ''
+      }
+      fill: ${fill}
+      ${stroke ? `;stroke: ${stroke}` : ''}
+      ${strokeWidth ? `;stroke-width: ${strokeWidth}` : ''}
+    }`
+    if (isSetSize && widthSp) {
+      const height = heightSp
+        ? heightSp
+        : widthSp && originalWidth && originalHeight
+        ? (widthSp / originalWidth) * originalHeight
+        : originalHeight
+
+      style += `@media ${media} {
+        ${selector} {
+          width: ${getVariableSizeRem(widthSp!)};
+          height: ${getVariableSizeRem(height!)};
+        }
+      }`
+    }
+    style = style.replace(/\n|\s/gm, '')
+  }
+
+  className += ` ${classNameSelf}`
+}
+
+const dataset = getDataset(Astro.props)
+---
+
+{style && <style aria-hidden="true" set:text={style} />}
+<SpriteAll
+  name={name}
+  width={width}
+  height={height}
+  optimize={optimize}
+  role="img"
+  aria-label={alt}
+  class={className}
+  {...dataset}
+/>

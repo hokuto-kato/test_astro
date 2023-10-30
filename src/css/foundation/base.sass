@@ -1,0 +1,67 @@
+@use "sass:math"
+@use '../abstracts' as *
+@use '../abstracts/variables' as *
+
+:root
+  // --headerPos: 0%
+  --headerValue: 0
+  --fixAnchorBlock: 1
+  --scroll-bar-width: 0px
+  --cartPcNav: 0
+
+html
+  overflow-y: scroll
+  // -webkit-font-smoothing: antialiased
+  // visibility: hidden // Adobe Fonts対策
+  +media-pc
+    // font-size: size-viewport-pc($font-size-browser)
+    font-size: calc(#{math.div(remove-unit($font-size-browser), remove-unit($base-width-pc))} * (100vw - var(--scroll-bar-width)))
+  +media-tb
+    /* media-tb */
+  +media-tb-portrait
+    /* media-tb-portrait */
+
+  // 1080px以下では可変サイズではなく固定にする
+  // @media screen and (min-width: #{$breakpoint) and (max-width: #{$breakpoint-tb-pc)
+  //   font-size: $font-size-browser * math.div($base-width-min, $base-width-pc)
+  //
+
+  // 1920px以上では可変サイズではなく固定にする
+  // +media-pc-max
+  //   font-size: $font-size-browser * math.div($base-width-max, $base-width-pc)
+  //
+
+  +media-sp
+    font-size: size-viewport-sp($font-size-browser-sp)
+    min-height: vh(100)
+
+  &.bMobile
+    overflow-y: visible
+
+  &.sWait
+    cursor: wait
+
+  // &.-full
+  //   overflow: hidden
+  //   height: 100%
+  //
+
+  // &.wf-active
+  //   visibility: visible // Adobe Fonts対策
+  //
+
+body
+  min-height: 100%
+  color: $color-font
+  font-family: $font-family-gothic
+  font-feature-settings: 'palt'
+  // background-color: red
+  +media-pc
+    +font-size-variable-pc($font-size-base-px)
+    // min-width: $base-width-min
+  +media-sp
+    +font-size-variable-sp($font-size-base-px-sp)
+
+// html.-full &
+//   height: 100%
+//

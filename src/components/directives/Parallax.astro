@@ -1,0 +1,51 @@
+<script>
+  // import merge from 'deepmerge'
+  import Component from '~js/parentClass/Component'
+  ;(class extends Component {
+    static selectorRoot = '[data-parallax]'
+
+    onInit() {
+      // const { isDisablePc = false, isDisableSp = false } = merge(
+      //   this.option,
+      //   JSON.parse(this.el.dataset.parallax)
+      // )
+
+      this.elBackground = this.el.querySelector('[data-parallax-background]')
+    }
+
+    onIntersect({ isIntersecting }) {
+      if (!this.elBackground) return
+
+      if (isIntersecting) {
+        this.elBackground.style.willChange = 'transform'
+        this.playScroll()
+      } else {
+        this.pauseScroll()
+        this.elBackground.style.willChange = ''
+      }
+    }
+
+    onScroll({ scroll }) {
+      if (!this.elBackground) return
+
+      this.elBackground.style.transform = `matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,${
+        ((scroll - this.yStart) / this.yDistance - 1) * this.move
+      },0,1)`
+    }
+
+    onResize({ windowHeight }) {
+      if (!this.elBackground) return
+
+      this.elBackground.style.transform = ''
+
+      const { scrollY } = this
+      const { top, bottom, height: heightEl } = this.el.getBoundingClientRect()
+      const { height: heightBackground } =
+        this.elBackground.getBoundingClientRect()
+      this.yStart = top + scrollY - windowHeight
+      this.yEnd = bottom + scrollY
+      this.yDistance = this.yEnd - this.yStart
+      this.move = heightBackground - heightEl
+    }
+  }).register()
+</script>
